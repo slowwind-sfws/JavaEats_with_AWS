@@ -1,0 +1,24 @@
+{
+  "features": {
+    "ghcr.io/audacioustux/devcontainers/aws-sam-cli:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/audacioustux/devcontainers/aws-sam-cli@sha256:1a5e97c673432cf41cf069d8268b372e3f6ea9753aa0b4d08693188998d775b6",
+      "integrity": "sha256:1a5e97c673432cf41cf069d8268b372e3f6ea9753aa0b4d08693188998d775b6"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "1.1.4",
+      "resolved": "ghcr.io/devcontainers/features/aws-cli@sha256:1f93c8315b7a6d76982ebb2269f8b0d50413fc0f965c032edf4aee0caceb73ef",
+      "integrity": "sha256:1f93c8315b7a6d76982ebb2269f8b0d50413fc0f965c032edf4aee0caceb73ef"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:3.0.0": {
+      "version": "3.0.0",
+      "resolved": "ghcr.io/devcontainers/features/docker-in-docker@sha256:256ffdbc156ffddd4c54b917176b5ddba379335706da7234e338bdd97bb4d771",
+      "integrity": "sha256:256ffdbc156ffddd4c54b917176b5ddba379335706da7234e338bdd97bb4d771"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "1.8.0",
+      "resolved": "ghcr.io/devcontainers/features/java@sha256:9663ce0219ff85786e87901ce5f0a59f488edd5f99b46015192cda48468b233a",
+      "integrity": "sha256:9663ce0219ff85786e87901ce5f0a59f488edd5f99b46015192cda48468b233a"
+    }
+  }
+}
