@@ -1,0 +1,2 @@
+# JavaEats_with_AWS
+SpringBootで作成された"JavaEats"システムをAWSクラウドに移行する実験
