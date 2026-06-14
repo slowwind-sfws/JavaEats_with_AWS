@@ -1,9 +1,9 @@
 {
-    "name": "java-sandbox",
+    "name": "JavaEats_with_AWS",
     "build": {
         "dockerfile": "Dockerfile"
     },
-    "workspaceFolder": "/workspaces/java-sandbox",
+    "workspaceFolder": "/workspaces/JavaEats_with_AWS",
     "features": {
          "ghcr.io/devcontainers/features/java:1": {
              "version": "21",
