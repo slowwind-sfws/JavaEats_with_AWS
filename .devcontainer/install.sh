@@ -31,6 +31,10 @@ if [ ! -f "$CLAUDE_SETTING_FILE" ]; then
     touch "$CLAUDE_SETTING_FILE"
 fi
 
+chown -R vscode ./.aws
+chgrp -R vscode ./.aws
+chown -R vscode ./.claude
+chgrp -R vscode ./.claude
 sudo cp -r ./.aws /home/vscode
 sudo cp -r ./.claude /home/vscode
 # fuse-overlayfs and daemon.json are configured in the Dockerfile.

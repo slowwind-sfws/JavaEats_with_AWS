@@ -8,6 +8,9 @@ aws configure
 //Git初期設定←認証も
 git config --global user.email "you@example.com"
 git config --global user.name "Your Name"
+**AWS認証情報とClaudeのAPIキーをバックアップすること
+cp -r /home/vscode/.aws ./
+cp -r /home/vscode/.claude ./
 ```
 
 ### 備忘録
