@@ -13,6 +13,13 @@
          "ghcr.io/audacioustux/devcontainers/aws-sam-cli:1": {},
          "ghcr.io/devcontainers/features/docker-in-docker:3.0.0": {}
     },
-    "postCreateCommand": "bash ${containerWorkspaceFolder}/.devcontainer/install.sh"//,
+    "postCreateCommand": "bash ${containerWorkspaceFolder}/.devcontainer/install.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vmware.vscode-boot-dev-pack"
+            ]
+        }
+    } //,
     //"postStartCommand": "sudo /usr/local/share/docker-init.sh"
 }

@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Spring Cloud Function with AWS SAM
+
+# Globals:
+#   Api:
+#     EndpointConfiguration: REGIONAL
+
+Resources:
+  MyAppApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: MyAppApiLocal
+      StageName: local
+      Cors:
+        AllowOrigin: "'http://localhost:3000'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+
+  SpringFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: java21
+      CodeUri: target/api-0.0.1-SNAPSHOT.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Timeout: 30
+      MemorySize: 512
+      SnapStart:
+        ApplyOn: PublishedVersions
+      AutoPublishAlias: live
+      Environment:
+        Variables:
+          MAIN_CLASS: jp.co.ambl.javaeats.ApiApplication
+          # 動かしたいSpring Beanの名前を指定
+          SPRING_CLOUD_FUNCTION_DEFINITION: uppercase
+      # ★ API Gatewayのイベントソースを追加
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            Path: /uppercase
+            Method: get
+
+Outputs:
+  SpringFunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt SpringFunction.Arn
+  Api:
+    Description: URL for application
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/uppercase'
+    Export:
+      Name: Api
