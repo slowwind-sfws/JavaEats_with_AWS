@@ -40,9 +40,9 @@ Resources:
         MyApi:
           Type: Api
           Properties:
-            # RestApiId: !Ref MyAppApi
+            RestApiId: !Ref MyAppApi
             Path: /uppercase
-            Method: get
+            Method: post
 
   LowercaseFunction:
     Type: AWS::Serverless::Function
@@ -55,8 +55,9 @@ Resources:
         MyApi:
           Type: Api
           Properties:
+            RestApiId: !Ref MyAppApi
             Path: /lowercase
-            Method: get
+            Method: post
 
 Outputs:
   SpringFunctionArn:

@@ -1,0 +1,76 @@
+-- 1. ユーザーデータの登録
+INSERT INTO users (user_name, email, password, rank_code) VALUES 
+('田中 太郎', 'tanaka@hoge.co.jp', 'pass001', 1),
+('鈴木 次郎', 'suzuki@hoge.co.jp', 'pass002', 1),
+('佐藤 花子', 'sato@hoge.co.jp', 'pass003', 2),
+('高橋 美咲', 'takahashi@hoge.co.jp', 'pass004', 2),
+('伊藤 健太', 'ito@hoge.co.jp', 'pass005', 3),
+('渡辺 翔太', 'watanabe@hoge.co.jp', 'pass006', 1),
+('小林 さくら', 'kobayashi@hoge.co.jp', 'pass007', 1);
+
+-- 2. カテゴリデータの登録
+INSERT INTO categories (category_name) VALUES 
+('洋食'), ('イタリアン'), ('インド料理'), ('ラーメン'), 
+('和食'), ('中華'), ('カフェ'), ('焼肉'), ('韓国料理');
+
+-- 3. 店舗データの登録 (category_idで紐付け)
+INSERT INTO shops (shop_name, category_id) VALUES 
+('Java Burger', 1),
+('Spring Pizza', 2),
+('MyBatis Curry', 3),
+('麺屋・雷', 4),
+('寿司・海原', 5),
+('台湾飯店・美麗', 6),
+('カフェ・ド・HOGE', 7),
+('焼肉・炎陣', 8),
+('ヘルシーサラダボウル', 1),
+('韓国料理・ソウル亭', 9);
+
+-- 4. 商品データの登録 (shop_idで紐付け)
+INSERT INTO items (shop_id, item_name, price, image_path) VALUES 
+-- Java Burger (shop_id: 1)
+(1, 'とろけるチーズバーガーセット', 1200, 'burger.jpg'),
+(1, 'てりやきチキンバーガー', 900, 'teriyaki.jpg'),
+-- Spring Pizza (shop_id: 2)
+(2, '特製マルゲリータピザ', 1800, 'pizza.jpg'),
+(2, 'たっぷりシーフードピザ', 2200, 'seafood.jpg'),
+-- MyBatis Curry (shop_id: 3)
+(3, '本格スパイスカレー', 1000, 'curry.jpg'),
+(3, 'チーズナンセット', 1100, 'cheese_nan.jpg'),
+-- 麺屋・雷 (shop_id: 4)
+(4, '濃厚豚骨ラーメン', 950, 'ramen.jpg'),
+(4, '旨辛まぜそば', 1050, 'mazesoba.jpg'),
+-- 寿司・海原 (shop_id: 5)
+(5, '特上握り10貫', 2500, 'sushi_tokujo.jpg'),
+(5, '厳選海鮮丼', 1500, 'kaisendon.jpg'),
+-- 台湾飯店・美麗 (shop_id: 6)
+(6, '絶品小籠包（6個入り）', 800, 'shoronpo.jpg'),
+(6, '五目チャーハン', 900, 'chahan.jpg'),
+(6, '大エビのチリソース定食', 1200, 'ebichiri.jpg'),
+-- カフェ・ド・HOGE (shop_id: 7)
+(7, 'オリジナルブレンドコーヒー', 400, 'coffee.jpg'),
+(7, '自家製ベリーパンケーキ', 1000, 'pancake.jpg'),
+-- 焼肉・炎陣 (shop_id: 8)
+(8, '特選カルビ弁当', 1500, 'karubi.jpg'),
+(8, 'ねぎ塩牛タン弁当', 1800, 'gyutan.jpg'),
+-- ヘルシーサラダボウル (shop_id: 9)
+(9, 'アボカドとサーモンのサラダ', 1100, 'salad.jpg'),
+-- 韓国料理・ソウル亭 (shop_id: 10)
+(10, '熱々石焼ビビンバ', 1200, 'bibimba.jpg'),
+(10, 'ヤンニョムチキン', 950, 'chicken.jpg');
+
+
+-- 5.　注文履歴テーブルデータの登録 (shop_idで紐付け)
+INSERT INTO orders (
+    user_id, item_id, quantity, order_price, shipping_fee, discount, total_price, order_date
+) VALUES 
+(5, 3, 1, 2500, 500, 0, 3000, '2025-10-01 12:00:00'),
+(5, 4, 2, 1200, 0,   0, 2400, '2025-11-15 19:30:00'),
+(5, 1, 3, 800,  0,   0, 2400, '2025-12-20 18:00:00'),
+(5, 3, 1, 2500, 500, 0, 3000, '2026-01-10 13:00:00'),
+(5, 2, 3, 400,  500, 0, 1700, '2026-02-05 20:00:00'),
+(3, 1, 1, 800, 500, 0, 1300, '2026-01-15 12:00:00'),
+(3, 2, 2, 400, 500, 0, 1300, '2026-02-10 18:30:00'),
+(4, 4, 1, 1200, 500, 0, 1700, '2026-01-20 19:00:00'),
+(4, 1, 1, 800,  500, 0, 1300, '2026-03-01 12:30:00'),
+(1, 2, 1, 400, 500, 0, 900, '2026-03-15 11:00:00');
