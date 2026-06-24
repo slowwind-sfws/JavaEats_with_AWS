@@ -27,26 +27,10 @@ public class MyFunctions {
 class MyRequest {
     String sei;
     String mei;
-
-    // public String getSei() {
-    //     return this.sei;
-    // }
-
-    // public String getMei() {
-    //     return this.mei;
-    // }
 }
 
 @Data
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
 class MyResponse {
     String fullname = "HOGEhoge";
-
-    // public MyResponse(String out) {
-    //     this.fullname = out;
-    // }
-
-    // public String getFullname() {
-    //     return this.fullname;
-    // }
 }
