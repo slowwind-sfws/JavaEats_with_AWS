@@ -15,19 +15,19 @@ services:
     volumes:
       - db-data:/var/lib/mysql
 
-  phpmyadmin:
-    image: phpmyadmin
-    networks:
-      - sam-network
-    depends_on:
-      - mysql
-    environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOSTS=mysql
-      - PMA_USER=root
-      - PMA_PASSWORD=mysql
-    ports:
-      - "8080:80"
+  # phpmyadmin:
+  #   image: phpmyadmin
+  #   networks:
+  #     - sam-network
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - PMA_ARBITRARY=1
+  #     - PMA_HOSTS=mysql
+  #     - PMA_USER=root
+  #     - PMA_PASSWORD=mysql
+  #   ports:
+  #     - "8080:80"
 
 networks:
   sam-network:
