@@ -12,23 +12,9 @@ import jp.co.ambl.javaeats.entity.Category;
 import jp.co.ambl.javaeats.form.ItemForm;
 import jp.co.ambl.javaeats.mapper.CategoryMapper;
 import jp.co.ambl.javaeats.mapper.ItemMapper;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 @Configuration
 public class MyFunctions {
-    // これがLambdaのロジックになる
-    @Bean
-    public Function<MyRequest, MyResponse> uppercase() {
-        return input -> new MyResponse((input.getSei()+input.getMei()).toUpperCase());
-    }
-
-    @Bean
-    public Function<MyRequest, MyResponse> lowercase() {
-        return input -> new MyResponse((input.getSei()+input.getMei()).toLowerCase());
-    }
-
     @Autowired
     private ItemMapper itemMapper;
 
@@ -44,16 +30,4 @@ public class MyFunctions {
     public Supplier<List<Category>> category() {
         return () -> categoryMapper.findAll();
     }
-}
-
-@Data
-class MyRequest {
-    String sei;
-    String mei;
-}
-
-@Data
-@AllArgsConstructor(access = AccessLevel.PACKAGE)
-class MyResponse {
-    String fullname = "HOGEhoge";
 }

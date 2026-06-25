@@ -27,36 +27,34 @@ Resources:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
 
-  UppercaseFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Environment:
-        Variables:
-          #MAIN_CLASS: jp.co.ambl.javaeats.ApiApplication
-          # 動かしたいSpring Beanの名前を指定
-          SPRING_CLOUD_FUNCTION_DEFINITION: category
-      # ★ API Gatewayのイベントソースを追加
-      Events:
-        MyApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref MyAppApi
-            Path: /category
-            Method: get
-
-  LowercaseFunction:
+  ItemListFunction:
     Type: AWS::Serverless::Function
     Properties:
       Environment:
         Variables:
           # 動かしたいSpring Beanの名前を指定
           SPRING_CLOUD_FUNCTION_DEFINITION: list
+      # ★ API Gatewayのイベントソースを追加
       Events:
         MyApi:
           Type: Api
           Properties:
             RestApiId: !Ref MyAppApi
-            Path: /list
+            Path: /item/list
+            Method: get
+
+  ItemCategoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: category
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /item/category
             Method: get
 
 Outputs:
