@@ -1,46 +1,74 @@
-# Getting Started with Create React App
+# packages/web — フロントエンド
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+JavaEats のフロントエンド SPA。React + TypeScript で実装し、`packages/api` の REST API を呼び出す。  
+デザインは Thymeleaf 版（`springboot-food-delivery-system`）のレイアウトをトレースしている。
 
-## Available Scripts
+## 技術スタック
 
-In the project directory, you can run:
+| 分類 | 内容 |
+|---|---|
+| 言語 | TypeScript 4.9.5 |
+| UI フレームワーク | React 19 |
+| ルーティング | React Router DOM 7 |
+| ビルドツール | Create React App（react-scripts 5.0.1） |
+| スタイル | 素の CSS3 |
+| ローカル開発 | React 開発サーバー（port 3000）+ API プロキシ |
 
-### `npm start`
+## ディレクトリ構成
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+packages/web/
+├── public/
+│   ├── index.html
+│   └── images/          # 商品画像（静的配信）
+├── src/
+│   ├── index.tsx        # React エントリポイント
+│   ├── index.css        # グローバルスタイル
+│   ├── App.tsx          # RouterProvider マウント
+│   ├── route.tsx        # ルート定義
+│   └── components/
+│       └── DefaultPage.tsx   # 商品一覧ページ
+└── package.json
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## セットアップ
 
-### `npm test`
+バックエンド API（`packages/api`）と MySQL（`local/docker-compose.yml`）が起動済みであることが前提です。
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+# ローカルインフラ起動
+cd local && docker compose up -d
 
-### `npm run build`
+# バックエンド API 起動（別ターミナル）
+cd packages/api
+./mvnw package -DskipTests
+sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 起動
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+cd packages/web
+npm start
+# → http://localhost:3000
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 画面構成
 
-### `npm run eject`
+| パス | 内容 | 状態 |
+|---|---|---|
+| `/` | 商品一覧（検索・カテゴリフィルター付き） | 実装済み |
+| `/order/input/{id}` | 注文入力 | 未実装 |
+| `/user/...` | ユーザー登録・マイページ | 未実装 |
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## ビルド
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm run build
+# → build/ に本番用成果物が生成される
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## デプロイ
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+本番環境へのデプロイは `packages/cdk/` の AWS CDK スタックで行います（将来追加）。  
+環境変数 `REACT_APP_API_BASE` で API のベース URL を指定します。

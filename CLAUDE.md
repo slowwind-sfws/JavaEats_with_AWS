@@ -19,7 +19,7 @@ JavaEats_with_AWS/
 │   └── docker-compose.yml
 └── packages/
     ├── api/             # バックエンド: Spring Boot + Lambda（詳細は packages/api/CLAUDE.md）
-    ├── web/             # フロントエンド: React（将来追加）
+    ├── web/             # フロントエンド: React（詳細は packages/web/CLAUDE.md）
     └── cdk/             # 本番デプロイ: AWS CDK（将来追加）
 ```
 
