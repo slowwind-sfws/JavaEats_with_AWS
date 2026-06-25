@@ -1,43 +1,44 @@
 import React, {useState, useEffect} from 'react'
 
-// 型定義セクション
-type MessageResponse = {
-  fullname: string;
+type ItemResponse = {
+  id: number;
+  itemName: string;
+  price: number;
+  imagePath: string;
+  shopName: string;
+  categoryName: string;
 };
 
 function DefaultPage() {
-  // 状態管理セクション
-  const [message, setDefaultMessage] = useState<string>('');
+  const [items, setItems] = useState<ItemResponse[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const apiBase = process.env.REACT_APP_API_BASE || '';
 
-  const send = { sei: "FURUTA", mei: "Seiichi"};
-
-  // 副作用処理セクション
   useEffect(() => {
-    const fetchDefaultMessage = async () => {
+    const fetchItems = async () => {
       try {
-        const res = await fetch(`${apiBase}/uppercase`, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(send)
-        });
-        const data: MessageResponse = await res.json();
-        setDefaultMessage(data.fullname);
-      } catch (error) {
-        console.error('Failed to fetch default message:', error);
-        setDefaultMessage('Error loading default message');
+        const res = await fetch(`${apiBase}/item/list`);
+        const data: ItemResponse[] = await res.json();
+        setItems(data);
+      } catch (e) {
+        console.error('Failed to fetch items:', e);
+        setError('データの取得に失敗しました');
       }
     };
-    fetchDefaultMessage();
+    fetchItems();
   }, [apiBase]);
 
-  // JSX構築セクション
-  if (message.length === 0) {
-    return <div>Loading...</div>;
-  }
+  if (error) return <div>{error}</div>;
+  if (items === null) return <div>Loading...</div>;
 
   return (
-  <p>{message}</p>
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>
+          {item.itemName} - ¥{item.price}（{item.shopName} / {item.categoryName}）
+        </li>
+      ))}
+    </ul>
   );
 }
 
