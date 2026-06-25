@@ -1,4 +1,4 @@
-package jp.co.ambl.javaeats.item.entity;
+package jp.co.ambl.javaeats.shared.entity;
 
 import lombok.Data;
 

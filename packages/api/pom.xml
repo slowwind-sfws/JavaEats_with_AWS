@@ -15,6 +15,7 @@
 	<name>javaeats-api</name>
 
 	<modules>
+		<module>shared</module>
 		<module>item-service</module>
 	</modules>
 

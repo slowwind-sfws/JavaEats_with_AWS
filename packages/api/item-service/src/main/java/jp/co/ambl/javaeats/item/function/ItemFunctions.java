@@ -5,7 +5,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jp.co.ambl.javaeats.item.dto.ItemSearchRequest;
 import jp.co.ambl.javaeats.item.dto.ItemResponse;
-import jp.co.ambl.javaeats.item.entity.Category;
+import jp.co.ambl.javaeats.shared.entity.Category;
 import jp.co.ambl.javaeats.item.mapper.CategoryMapper;
 import jp.co.ambl.javaeats.item.mapper.ItemMapper;
 import org.springframework.beans.factory.annotation.Autowired;

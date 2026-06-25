@@ -22,7 +22,8 @@ JavaEats_with_AWS/
 ├── .devcontainer/       # Dev Container 設定（WSL2 + Docker-in-Docker 対応）
 ├── .aws/                # AWS 認証情報バックアップ（コンテナ再作成用）
 ├── .claude/             # Claude Code 設定バックアップ（コンテナ再作成用）
-├── local/               # ローカル開発インフラ（LocalStack / MySQL 等）
+├── localstack/          # ローカル開発インフラ（MySQL 等）
+│   └── docker-compose.yml
 └── packages/
     ├── api/             # バックエンド（Spring Boot + Lambda）
     ├── web/             # フロントエンド（React）※将来追加
@@ -65,13 +66,15 @@ cp -r /home/vscode/.claude ./
 ## ローカル開発の起動手順
 
 ```bash
-# ローカルインフラ（MySQL 等）起動
-cd local && docker compose up -d
+# 1. ローカルインフラ（MySQL）起動
+cd localstack && docker compose up -d
 
-# バックエンド ビルド & 起動
-cd packages/api
-sam build --use-container -t template.local.yaml
-sam local start-api -t template.local.yaml
+# 2. バックエンド ビルド
+cd packages/api && ./mvnw package -DskipTests
+
+# 3. ローカル API サーバー起動
+cd packages/api && sam local start-api -t template.local.yaml --docker-network sam-network
 # → http://127.0.0.1:3000/item/list
+# → http://127.0.0.1:3000/item/{id}
 # → http://127.0.0.1:3000/item/category
 ```

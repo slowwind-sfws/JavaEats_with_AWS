@@ -1,7 +1,7 @@
 # packages/api — バックエンド
 
 JavaEats のバックエンド API。Spring Boot + Spring Cloud Function で実装し、AWS Lambda + API Gateway 上で動作する。  
-サービスは **Mavenマルチモジュール**で分割し、`item-service`・`order-service`・`user-service` をそれぞれ独立した JAR として Lambda にデプロイする。
+サービスは **Mavenマルチモジュール**で分割し、それぞれ独立した JAR として Lambda にデプロイする。
 
 ## 技術スタック
 
@@ -21,21 +21,20 @@ JavaEats のバックエンド API。Spring Boot + Spring Cloud Function で実�
 packages/api/
 ├── pom.xml                          # 親 POM
 ├── template.local.yaml              # ローカル開発用 SAM テンプレート
-├── shared/                          # 共通ライブラリ
-├── item-service/                    # 商品・カテゴリ・ショップ
+├── shared/                          # 共通ライブラリ（各サービスに組み込み）
+│   └── src/.../shared/entity/Category.java
+├── item-service/                    # 商品・カテゴリ（実装済み）
 │   └── target/item-service-0.0.1-SNAPSHOT.jar
-├── order-service/                   # 注文管理
-│   └── target/order-service-0.0.1-SNAPSHOT.jar
-└── user-service/                    # ユーザー・認証
-    └── target/user-service-0.0.1-SNAPSHOT.jar
+├── order-service/                   # 注文管理（未実装）
+└── user-service/                    # ユーザー・認証（未実装）
 ```
 
 ## セットアップ
 
-ローカル MySQL が必要です。リポジトリルートの `local/docker-compose.yml` で起動できます。
+ローカル MySQL が必要です。`localstack/docker-compose.yml` で起動できます。
 
 ```bash
-cd local
+cd localstack
 docker compose up -d
 ```
 
@@ -45,15 +44,15 @@ docker compose up -d
 cd packages/api
 
 # 全サービスをまとめてビルド
-./mvnw package
+./mvnw package -DskipTests
 
-# ローカル API サーバー起動
-sam local start-api -t template.local.yaml
+# ローカル API サーバー起動（--docker-network は MySQL コンテナとの通信に必須）
+sam local start-api -t template.local.yaml --docker-network sam-network
 ```
 
 ## API エンドポイント
 
-### item-service
+### item-service（実装済み）
 
 | メソッド | パス | Bean 名 | 説明 |
 |---|---|---|---|
@@ -61,7 +60,7 @@ sam local start-api -t template.local.yaml
 | GET | `/item/{id}` | `getItem` | 商品1件取得 |
 | GET | `/item/category` | `listCategories` | カテゴリ一覧取得 |
 
-### order-service
+### order-service（未実装）
 
 | メソッド | パス | Bean 名 | 説明 |
 |---|---|---|---|
@@ -69,27 +68,23 @@ sam local start-api -t template.local.yaml
 | GET | `/order/{id}` | `getOrder` | 注文1件取得 |
 | GET | `/order/list` | `listOrders` | 注文一覧取得 |
 
-### user-service
+### user-service（未実装）
 
 | メソッド | パス | Bean 名 | 説明 |
 |---|---|---|---|
 | POST | `/user/register` | `registerUser` | ユーザー登録 |
 | GET | `/user/{id}` | `getUser` | ユーザー情報取得 |
 
-## サービス構成方針
+## サービス構成
 
-各サービスは独立した Spring Boot アプリとして動作し、異なる JAR にパッケージングされます。  
-`template.local.yaml` の `CodeUri` でサービスごとの JAR を指定することで、  
-ローカルでも本番と同じ分離構成を再現します。
-
-| サービス | パッケージ | JAR | 担当ドメイン |
-|---|---|---|---|
-| item-service | `jp.co.ambl.javaeats.item` | `item-service-*.jar` | 商品・カテゴリ・ショップ |
-| order-service | `jp.co.ambl.javaeats.order` | `order-service-*.jar` | 注文管理 |
-| user-service | `jp.co.ambl.javaeats.user` | `user-service-*.jar` | ユーザー・認証 |
-| shared | `jp.co.ambl.javaeats.shared` | 各サービスに組み込み | 共通コード |
+| サービス | パッケージ | 状態 |
+|---|---|---|
+| shared | `jp.co.ambl.javaeats.shared` | 実装済み（Category entity） |
+| item-service | `jp.co.ambl.javaeats.item` | 実装済み |
+| order-service | `jp.co.ambl.javaeats.order` | 未実装 |
+| user-service | `jp.co.ambl.javaeats.user` | 未実装 |
 
 ## デプロイ
 
-本番環境へのデプロイは `packages/cdk/` の AWS CDK スタックで行います。  
-`template.local.yaml` はローカル開発専用であり、本番デプロイには使用しません。
+本番環境へのデプロイは `packages/cdk/` の AWS CDK スタックで行います（将来追加）。  
+`template.local.yaml` はローカル開発専用です。
