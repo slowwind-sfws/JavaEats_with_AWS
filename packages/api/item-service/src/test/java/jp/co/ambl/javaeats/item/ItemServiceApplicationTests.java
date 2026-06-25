@@ -1,13 +1,12 @@
-package jp.co.ambl.javaeats;
+package jp.co.ambl.javaeats.item;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ApiApplicationTests {
+class ItemServiceApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void contextLoads() {
+    }
 }

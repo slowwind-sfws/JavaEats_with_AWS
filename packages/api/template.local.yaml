@@ -1,20 +1,22 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Spring Cloud Function with AWS SAM
+Description: JavaEats - item-service (SAM local)
 
 Globals:
-#   Api:
-#     EndpointConfiguration: REGIONAL
   Function:
     Runtime: java21
-    CodeUri: target/api-0.0.1-SNAPSHOT.jar
+    CodeUri: item-service/target/item-service-0.0.1-SNAPSHOT.jar
     Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
     Timeout: 30
     MemorySize: 512
     SnapStart:
       ApplyOn: PublishedVersions
     AutoPublishAlias: live
-
+    Environment:
+      Variables:
+        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db
+        SPRING_DATASOURCE_USERNAME: user
+        SPRING_DATASOURCE_PASSWORD: password
 
 Resources:
   MyAppApi:
@@ -32,9 +34,7 @@ Resources:
     Properties:
       Environment:
         Variables:
-          # 動かしたいSpring Beanの名前を指定
-          SPRING_CLOUD_FUNCTION_DEFINITION: list
-      # ★ API Gatewayのイベントソースを追加
+          SPRING_CLOUD_FUNCTION_DEFINITION: listItems
       Events:
         MyApi:
           Type: Api
@@ -43,12 +43,26 @@ Resources:
             Path: /item/list
             Method: get
 
+  ItemGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: getItem
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /item/{id}
+            Method: get
+
   ItemCategoryFunction:
     Type: AWS::Serverless::Function
     Properties:
       Environment:
         Variables:
-          SPRING_CLOUD_FUNCTION_DEFINITION: category
+          SPRING_CLOUD_FUNCTION_DEFINITION: listCategories
       Events:
         MyApi:
           Type: Api
@@ -56,13 +70,3 @@ Resources:
             RestApiId: !Ref MyAppApi
             Path: /item/category
             Method: get
-
-Outputs:
-  SpringFunctionArn:
-    Description: "Lambda Function ARN"
-    Value: !GetAtt SpringFunction.Arn
-  Api:
-    Description: URL for application
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/uppercase'
-    Export:
-      Name: Api
