@@ -34,14 +34,14 @@ Resources:
         Variables:
           #MAIN_CLASS: jp.co.ambl.javaeats.ApiApplication
           # 動かしたいSpring Beanの名前を指定
-          SPRING_CLOUD_FUNCTION_DEFINITION: uppercase
+          SPRING_CLOUD_FUNCTION_DEFINITION: category
       # ★ API Gatewayのイベントソースを追加
       Events:
         MyApi:
           Type: Api
           Properties:
-            # RestApiId: !Ref MyAppApi
-            Path: /uppercase
+            RestApiId: !Ref MyAppApi
+            Path: /category
             Method: get
 
   LowercaseFunction:
@@ -50,12 +50,13 @@ Resources:
       Environment:
         Variables:
           # 動かしたいSpring Beanの名前を指定
-          SPRING_CLOUD_FUNCTION_DEFINITION: lowercase
+          SPRING_CLOUD_FUNCTION_DEFINITION: list
       Events:
         MyApi:
           Type: Api
           Properties:
-            Path: /lowercase
+            RestApiId: !Ref MyAppApi
+            Path: /list
             Method: get
 
 Outputs:

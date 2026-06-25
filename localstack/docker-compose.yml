@@ -1,0 +1,37 @@
+# localstack/docker-compose.yml
+services:
+  mysql:
+    image: mysql:8.0.27
+    ports:
+      - "3306:3306"
+    networks:
+      - sam-network
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      TZ: 'Asia/Tokyo'
+    volumes:
+      - db-data:/var/lib/mysql
+
+  # phpmyadmin:
+  #   image: phpmyadmin
+  #   networks:
+  #     - sam-network
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - PMA_ARBITRARY=1
+  #     - PMA_HOSTS=mysql
+  #     - PMA_USER=root
+  #     - PMA_PASSWORD=mysql
+  #   ports:
+  #     - "8080:80"
+
+networks:
+  sam-network:
+    external: true  # docker network create sam-network で作成した外部ネットワーク
+
+volumes:
+  db-data:
