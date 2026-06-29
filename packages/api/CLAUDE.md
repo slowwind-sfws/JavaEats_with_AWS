@@ -14,7 +14,8 @@ Spring Boot + Spring Cloud Function で Lambda 関数を実装し、API Gateway 
 | フレームワーク | Spring Boot 4.1.0 |
 | Lambda アダプタ | Spring Cloud Function 2025.1.2 (`spring-cloud-function-adapter-aws`) |
 | ORM | MyBatis 4.0.1（XML マッピング） |
-| DB | MySQL（ローカル: `mysql:3306/db`、Docker ネットワーク `sam-network` 経由） |
+| DB（ローカル） | MySQL（`mysql:3306/db`、Docker ネットワーク `sam-network` 経由） |
+| DB（本番） | Aurora Serverless V2（`shared.cluster-c1ygeeuiuvel.ap-northeast-1.rds.amazonaws.com:3306/db`） |
 | ビルド | Maven マルチモジュール（`maven-shade-plugin` で各サービスが fat JAR 生成） |
 | ローカル開発 | AWS SAM CLI（`template.local.yaml`） |
 
@@ -124,4 +125,15 @@ cd packages/api && ./mvnw test
 | `items` | 商品（shop_id, price, image_path） | item-service |
 | `orders` | 注文（user_id, item_id, quantity, total_price 等） | order-service |
 
-`schema.sql` / `data.sql` は `spring.sql.init.mode=always` でアプリ起動時に毎回実行される。
+`schema.sql` / `data.sql` は `spring.sql.init.mode=always` でアプリ起動時に毎回実行される（ローカル・本番ともに）。
+
+## application.properties の環境変数対応
+
+DB 接続設定は環境変数フォールバック形式に変更済み。ローカルでは環境変数未設定時に Docker の MySQL へ接続する。
+
+| プロパティ | ローカルデフォルト | 本番（Lambda 環境変数で上書き） |
+|---|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/db` | Aurora エンドポイント |
+| `SPRING_DATASOURCE_USERNAME` | `user` | `dbadmin` |
+| `SPRING_DATASOURCE_PASSWORD` | `password` | （CDK で設定） |
+| `SPRING_SQL_INIT_MODE` | `always` | `always`（実験段階） |

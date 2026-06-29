@@ -88,5 +88,6 @@ npm test
 
 ## デプロイ
 
-本番環境へのデプロイは `packages/cdk/` の AWS CDK スタックで行います（将来追加）。  
-ビルド成果物は `build/` ディレクトリに生成される。
+本番環境へのデプロイは `packages/cdk/` の AWS CDK スタックで行う。  
+`BucketDeployment` が `build/` の成果物を S3 にアップロードし、CloudFront キャッシュを自動パージする。  
+詳細は [packages/cdk/CLAUDE.md](../cdk/CLAUDE.md) を参照。

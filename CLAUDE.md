@@ -20,7 +20,7 @@ JavaEats_with_AWS/
 └── packages/
     ├── api/             # バックエンド: Spring Boot + Lambda（詳細は packages/api/CLAUDE.md）
     ├── web/             # フロントエンド: React（詳細は packages/web/CLAUDE.md）
-    └── cdk/             # 本番デプロイ: AWS CDK（将来追加）
+    └── cdk/             # 本番デプロイ: AWS CDK（詳細は packages/cdk/CLAUDE.md）
 ```
 
 各パッケージの詳細は配下の `CLAUDE.md` を参照すること。
@@ -29,8 +29,17 @@ JavaEats_with_AWS/
 
 ```bash
 # バックエンド ビルド & ローカル起動
-cd packages/api && ./mvnw package
-cd packages/api && sam local start-api -t template.local.yaml
+cd packages/api && ./mvnw package -DskipTests
+cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+
+# フロントエンド開発サーバー起動
+cd packages/web && npm start
+
+# フロントエンド本番ビルド
+cd packages/web && npm run build
+
+# 本番デプロイ（api・web のビルド後に実行）
+cd packages/cdk && npx cdk deploy
 
 # ローカルインフラ（MySQL 等）起動
 cd local && docker compose up -d
@@ -40,9 +49,12 @@ cd local && docker compose up -d
 
 - **リージョン**: `ap-northeast-1`
 - **Lambda ハンドラ**: `org.springframework.cloud.function.adapter.aws.FunctionInvoker`
-- **ランタイム**: `java21`、メモリ `512MB`、タイムアウト `30秒`
+- **ランタイム**: `java21`、メモリ `512MB`、タイムアウト `30秒`、SnapStart 有効
 - **ローカル開発用 SAM テンプレート**: `packages/api/template.local.yaml`
-- **本番デプロイ**: `packages/cdk/`（AWS CDK、将来追加）
+- **本番デプロイ**: `packages/cdk/`（AWS CDK）
+  - Lambda + API Gateway（バックエンド）
+  - S3 + CloudFront（フロントエンド）
+  - CloudFront の `api/*` ビヘイビアで API Gateway に転送
 
 ## Claude Code 設定
 

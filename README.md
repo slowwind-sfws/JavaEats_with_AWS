@@ -11,9 +11,9 @@ Java 21 + Spring Boot 4.1.0 を AWS Lambda + API Gateway で動かし、マイ�
 | バックエンドフレームワーク | Spring Boot 4.1.0 |
 | フロントエンド言語 | TypeScript 4.9.5 |
 | フロントエンドフレームワーク | React 19 |
-| デプロイ先 | AWS Lambda + API Gateway（バックエンド）/ S3 + CloudFront（フロントエンド、将来追加） |
+| デプロイ先 | AWS Lambda + API Gateway（バックエンド）/ S3 + CloudFront（フロントエンド）/ Aurora Serverless V2（DB） |
 | ローカル開発 | AWS SAM CLI（バックエンド）/ React 開発サーバー（フロントエンド） |
-| 本番デプロイ | AWS CDK（`packages/cdk/`、将来追加） |
+| 本番デプロイ | AWS CDK（`packages/cdk/`） |
 | AI アシスタント | Claude Code (Amazon Bedrock, ap-northeast-1) |
 
 ## モノレポ構成
@@ -28,13 +28,14 @@ JavaEats_with_AWS/
 └── packages/
     ├── api/             # バックエンド（Spring Boot + Lambda）
     ├── web/             # フロントエンド（React）
-    └── cdk/             # 本番デプロイ（AWS CDK）※将来追加
+    └── cdk/             # 本番デプロイ（AWS CDK）
 ```
 
 各パッケージの詳細は配下の README.md を参照してください。
 
 - [packages/api/README.md](packages/api/README.md) — バックエンド API
 - [packages/web/README.md](packages/web/README.md) — フロントエンド
+- [packages/cdk/README.md](packages/cdk/README.md) — 本番デプロイ（AWS CDK）
 
 ## 開発環境（Dev Container）
 
