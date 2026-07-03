@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 type ItemResponse = {
   id: number;
@@ -15,6 +17,7 @@ type Category = {
 };
 
 function DefaultPage() {
+  const { isLoggedIn, signOut } = useAuth();
   const [items, setItems] = useState<ItemResponse[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -30,7 +33,11 @@ function DefaultPage() {
       if (kw) params.set('keyword', kw);
       if (catId) params.set('categoryId', catId);
       const query = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`${apiBase}/item/list${query}`, { signal });
+      const idToken = localStorage.getItem('id_token');
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
+      const res = await fetch(`${apiBase}/item/list${query}`, { signal, headers });
       const data: ItemResponse[] = await res.json();
       setItems(data);
     } catch (e: any) {
@@ -46,7 +53,11 @@ function DefaultPage() {
 
     const init = async () => {
       try {
-        const catRes = await fetch(`${apiBase}/item/category`, { signal });
+        const idToken = localStorage.getItem('id_token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
+        const catRes = await fetch(`${apiBase}/item/category`, { signal, headers });
         const catData: Category[] = await catRes.json();
         setCategories(Array.isArray(catData) ? catData : []);
       } catch (e: any) {
@@ -66,11 +77,14 @@ function DefaultPage() {
     fetchItems(keyword, categoryId);
   };
 
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+
   return (
     <>
       <header className="site-header">
         <div className="header-container">
           <h1 className="site-title"><a href="/">🍔 JavaEats</a></h1>
+          <button className="btn-logout" onClick={signOut}>ログアウト</button>
         </div>
       </header>
 

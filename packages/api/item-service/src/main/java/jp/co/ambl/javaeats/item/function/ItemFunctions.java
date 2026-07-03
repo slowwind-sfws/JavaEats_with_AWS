@@ -33,6 +33,16 @@ public class ItemFunctions {
     public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> listItems() {
         return event -> {
             try {
+                // リクエスト内のAuthorizationヘッダーを取得してデバッグ出力するコード例
+                String authHeader = event.getHeaders().get("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    String jwtToken = authHeader.substring(7);
+                    System.out.println("Received Cognito JWT Token: " + jwtToken);
+
+                    // (検証実験時) ローカルなので、一旦JWTライブラリ等でデコードして、
+                    // クレーム（ユーザーIDやメールアドレスなど）を表示し、正しく認証連携できていることを確認
+                }
+
                 ItemSearchRequest request = new ItemSearchRequest();
                 Map<String, String> params = event.getQueryStringParameters();
                 if (params != null) {

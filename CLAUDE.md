@@ -15,7 +15,7 @@ JavaEats_with_AWS/
 │   └── install.sh       # postCreateCommand: .aws/.claude を /home/vscode/ へコピー
 ├── .aws/                # AWS 認証情報バックアップ（.gitignore 対象、コンテナ再作成用）
 ├── .claude/             # Claude Code 設定バックアップ（.gitignore 対象、コンテナ再作成用）
-├── local/               # ローカル開発インフラ（LocalStack / MySQL 等）
+├── localstack/          # ローカル開発インフラ（MySQL + Floci）
 │   └── docker-compose.yml
 └── packages/
     ├── api/             # バックエンド: Spring Boot + Lambda（詳細は packages/api/CLAUDE.md）
@@ -41,8 +41,8 @@ cd packages/web && npm run build
 # 本番デプロイ（api・web のビルド後に実行）
 cd packages/cdk && npx cdk deploy
 
-# ローカルインフラ（MySQL 等）起動
-cd local && docker compose up -d
+# ローカルインフラ（MySQL + Floci）起動
+cd localstack && docker compose up -d
 ```
 
 ## AWS・インフラ設定

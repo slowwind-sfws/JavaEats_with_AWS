@@ -24,20 +24,26 @@ packages/web/
 ├── src/
 │   ├── index.tsx        # React エントリポイント
 │   ├── index.css        # グローバルスタイル
-│   ├── App.tsx          # RouterProvider マウント
+│   ├── App.tsx          # RouterProvider マウント（AuthProvider でラップ）
 │   ├── route.tsx        # ルート定義
-│   └── components/
-│       └── DefaultPage.tsx   # 商品一覧ページ
+│   ├── setupProxy.js    # CRA プロキシ設定（Cognito CORS 回避）
+│   ├── components/
+│   │   ├── DefaultPage.tsx   # 商品一覧ページ（認証ガード付き）
+│   │   └── LoginPage.tsx     # ログイン画面
+│   ├── contexts/
+│   │   └── AuthContext.tsx   # 認証状態管理
+│   └── services/
+│       └── authService.ts    # Cognito API 呼び出し
 └── package.json
 ```
 
 ## セットアップ
 
-バックエンド API（`packages/api`）と MySQL（`local/docker-compose.yml`）が起動済みであることが前提です。
+バックエンド API（`packages/api`）・MySQL・Floci（`localstack/docker-compose.yml`）が起動済みであることが前提です。
 
 ```bash
-# ローカルインフラ起動
-cd local && docker compose up -d
+# ローカルインフラ（MySQL + Floci）起動
+cd localstack && docker compose up -d
 
 # バックエンド API 起動（別ターミナル）
 cd packages/api
@@ -57,7 +63,8 @@ npm start
 
 | パス | 内容 | 状態 |
 |---|---|---|
-| `/` | 商品一覧（検索・カテゴリフィルター付き） | 実装済み |
+| `/` | 商品一覧（検索・カテゴリフィルター・ログアウトボタン） | 実装済み |
+| `/login` | ログイン（Cognito 認証） | 実装済み |
 | `/order/input/{id}` | 注文入力 | 未実装 |
 | `/user/...` | ユーザー登録・マイページ | 未実装 |
 

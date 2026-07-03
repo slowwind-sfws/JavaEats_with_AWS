@@ -60,6 +60,8 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 | GET | `/item/{id}` | `getItem` | 商品1件取得 |
 | GET | `/item/category` | `listCategories` | カテゴリ一覧取得 |
 
+フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される（JWT 検証は未実装）。
+
 ### order-service（未実装）
 
 | メソッド | パス | Bean 名 | 説明 |

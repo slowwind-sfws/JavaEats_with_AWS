@@ -27,10 +27,16 @@ packages/web/
 ├── src/
 │   ├── index.tsx                    # React エントリポイント（StrictMode なし）
 │   ├── index.css                    # グローバルスタイル（参照リポジトリのCSSをトレース）
-│   ├── App.tsx                      # RouterProvider マウント
+│   ├── App.tsx                      # RouterProvider マウント（AuthProvider でラップ）
 │   ├── route.tsx                    # ルート定義
-│   └── components/
-│       └── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング）
+│   ├── setupProxy.js                # CRA プロキシ設定（Cognito CORS 回避）
+│   ├── components/
+│   │   ├── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング、認証ガード付き）
+│   │   └── LoginPage.tsx            # ログイン画面（/login にマッピング）
+│   ├── contexts/
+│   │   └── AuthContext.tsx          # 認証状態グローバル管理（isLoggedIn, signIn, signOut）
+│   └── services/
+│       └── authService.ts           # Cognito API 呼び出し（fetch ベース、Amplify 不使用）
 └── package.json
 ```
 
@@ -38,13 +44,55 @@ packages/web/
 
 | パス | コンポーネント | 状態 |
 |---|---|---|
-| `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター） |
+| `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・ログアウトボタン） |
+| `/login` | `LoginPage` | 実装済み（Cognito 認証） |
 | `/order/input/{id}` | — | 未実装 |
 | `/user/...` | — | 未実装 |
 
+## 認証フロー（Cognito）
+
+AWS Amplify を使わず、ブラウザ標準の `fetch` API で Cognito の JSON-RPC API を直接呼び出す。  
+ローカルでは Floci（Cognito エミュレータ）を使用し、本番環境ではエンドポイント URL を切り替えるだけで動作する。
+
+```
+ブラウザ → /cognito/* → React 開発サーバー（setupProxy.js） → Floci :4566
+```
+
+CORS を回避するため、`setupProxy.js` で `/cognito` パスを Floci にプロキシしている。  
+`authService.ts` がサインイン成功後に `localStorage` へ `id_token` / `access_token` / `refresh_token` を保存し、  
+以降の API リクエストは `Authorization: Bearer <id_token>` ヘッダーを付与する。
+
+### 環境変数（`.env.development`）
+
+| 変数名 | 説明 |
+|---|---|
+| `REACT_APP_COGNITO_ENDPOINT` | Cognito エンドポイント（開発時は `/cognito`） |
+| `REACT_APP_COGNITO_CLIENT_ID` | Cognito アプリクライアント ID |
+| `REACT_APP_COGNITO_USER_POOL_ID` | Cognito ユーザープール ID |
+
+### ローカルダミーユーザーの作成
+
+```bash
+# 1. ユーザー作成
+aws --endpoint-url=http://localhost:4566 cognito-idp admin-create-user \
+  --user-pool-id <USER_POOL_ID> \
+  --username testuser \
+  --temporary-password "Temp1234!" \
+  --region ap-northeast-1
+
+# 2. FORCE_CHANGE_PASSWORD を解除（CONFIRMED 状態にする）
+aws --endpoint-url=http://localhost:4566 cognito-idp admin-set-user-password \
+  --user-pool-id <USER_POOL_ID> \
+  --username testuser \
+  --password "Password1234!" \
+  --permanent \
+  --region ap-northeast-1
+```
+
 ## API 呼び出し
 
-開発時は `package.json` の `"proxy": "http://localhost:8080"` により、React 開発サーバーが API リクエストを SAM local（port 8080）へ転送する。
+開発時は `package.json` の `"proxy": "http://localhost:8080"` により、React 開発サーバーが API リクエストを SAM local（port 8080）へ転送する。  
+ログイン後のすべてのリクエストには `Authorization: Bearer <id_token>` ヘッダーが付与される。
 
 | エンドポイント | 用途 |
 |---|---|
@@ -79,6 +127,8 @@ npm test
 - **初期化は直列実行。** `/item/category` → `/item/list` の順で `await` して直列に呼び出す。並列 fetch は SAM local の制約により500エラーになる。
 - **`AbortController` でクリーンアップ。** `useEffect` のクリーンアップ関数でリクエストをキャンセルし、アンマウント時の不要な state 更新を防ぐ。
 - **VSCode TypeScript Language Server の設定。** モノレポ構成のため `.vscode/settings.json` に `"typescript.tsdk": "packages/web/node_modules/typescript/lib"` を設定済み。
+- **Cognito CORS 回避。** ブラウザから `localhost:4566` に直接リクエストすると CORS エラーになる。`setupProxy.js` で `/cognito` を Floci にプロキシすることで回避している。開発サーバー再起動時に `setupProxy.js` が自動で読み込まれる。
+- **`AuthContext` の初期値。** `useState(AuthService.isLoggedIn())` で初回レンダリング時に `localStorage` から状態を同期的に読み込む。`useEffect` による非同期初期化では、未ログイン状態で一瞬レンダリングされてリダイレクトが発生するため使わない。
 
 ## 画像ファイルの扱い
 

@@ -59,6 +59,9 @@ packages/api/
 | `getItem` | GET | `/item/{id}` | 商品1件取得 |
 | `listCategories` | GET | `/item/category` | カテゴリ一覧取得 |
 
+フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。  
+現時点では JWT の検証は未実装（ヘッダーは受け取るが無視している）。今後 user-service 実装時に検証処理を追加予定。
+
 ### order-service（未実装）
 
 | Bean 名 | HTTP | パス | 説明 |
