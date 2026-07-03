@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthenticator } from '@aws-amplify/ui-react';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 type ItemResponse = {
   id: number;
@@ -17,13 +17,21 @@ type Category = {
 };
 
 function DefaultPage() {
-  const { isLoggedIn, signOut } = useAuth();
+  const { signOut } = useAuthenticator();
   const [items, setItems] = useState<ItemResponse[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [keyword, setKeyword] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const apiBase = process.env.REACT_APP_API_BASE || '';
+
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken?.toString();
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+    return headers;
+  };
 
   const fetchItems = async (kw: string, catId: string, signal?: AbortSignal) => {
     setItems(null);
@@ -33,10 +41,7 @@ function DefaultPage() {
       if (kw) params.set('keyword', kw);
       if (catId) params.set('categoryId', catId);
       const query = params.toString() ? `?${params.toString()}` : '';
-      const idToken = localStorage.getItem('id_token');
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
-
+      const headers = await getAuthHeaders();
       const res = await fetch(`${apiBase}/item/list${query}`, { signal, headers });
       const data: ItemResponse[] = await res.json();
       setItems(data);
@@ -53,10 +58,7 @@ function DefaultPage() {
 
     const init = async () => {
       try {
-        const idToken = localStorage.getItem('id_token');
-        const headers: HeadersInit = { 'Content-Type': 'application/json' };
-        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
-
+        const headers = await getAuthHeaders();
         const catRes = await fetch(`${apiBase}/item/category`, { signal, headers });
         const catData: Category[] = await catRes.json();
         setCategories(Array.isArray(catData) ? catData : []);
@@ -76,8 +78,6 @@ function DefaultPage() {
     e.preventDefault();
     fetchItems(keyword, categoryId);
   };
-
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
 
   return (
     <>

@@ -13,6 +13,7 @@ React + TypeScript で SPA を実装し、`packages/api` が提供する REST AP
 | 言語 | TypeScript 4.9.5 |
 | UI フレームワーク | React 19 |
 | ルーティング | React Router DOM 7 |
+| 認証 | AWS Amplify v6 + `@aws-amplify/ui-react`（`<Authenticator>` コンポーネント） |
 | ビルドツール | Create React App（react-scripts 5.0.1） |
 | スタイル | 素の CSS3（`src/index.css`） |
 | ローカル開発 | React 開発サーバー（port 3000）+ API プロキシ |
@@ -27,16 +28,11 @@ packages/web/
 ├── src/
 │   ├── index.tsx                    # React エントリポイント（StrictMode なし）
 │   ├── index.css                    # グローバルスタイル（参照リポジトリのCSSをトレース）
-│   ├── App.tsx                      # RouterProvider マウント（AuthProvider でラップ）
+│   ├── App.tsx                      # Amplify.configure + <Authenticator> でラップ
 │   ├── route.tsx                    # ルート定義
 │   ├── setupProxy.js                # CRA プロキシ設定（Cognito CORS 回避）
-│   ├── components/
-│   │   ├── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング、認証ガード付き）
-│   │   └── LoginPage.tsx            # ログイン画面（/login にマッピング）
-│   ├── contexts/
-│   │   └── AuthContext.tsx          # 認証状態グローバル管理（isLoggedIn, signIn, signOut）
-│   └── services/
-│       └── authService.ts           # Cognito API 呼び出し（fetch ベース、Amplify 不使用）
+│   └── components/
+│       └── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング）
 └── package.json
 ```
 
@@ -45,28 +41,29 @@ packages/web/
 | パス | コンポーネント | 状態 |
 |---|---|---|
 | `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・ログアウトボタン） |
-| `/login` | `LoginPage` | 実装済み（Cognito 認証） |
+| ログイン | Amplify `<Authenticator>` | 未認証時に自動表示（独自 `LoginPage` は削除済み） |
 | `/order/input/{id}` | — | 未実装 |
 | `/user/...` | — | 未実装 |
 
-## 認証フロー（Cognito）
+## 認証フロー（Cognito + Amplify UI）
 
-AWS Amplify を使わず、ブラウザ標準の `fetch` API で Cognito の JSON-RPC API を直接呼び出す。  
-ローカルでは Floci（Cognito エミュレータ）を使用し、本番環境ではエンドポイント URL を切り替えるだけで動作する。
+`App.tsx` で `Amplify.configure()` を呼び出し、`<Authenticator>` でアプリ全体をラップする。  
+未認証時は Amplify が自動でログインフォームを表示し、認証成功後にアプリ本体がレンダリングされる。  
+ローカルでは Floci（Cognito エミュレータ）を使用し、`userPoolEndpoint` でエンドポイントを切り替える。
 
 ```
-ブラウザ → /cognito/* → React 開発サーバー（setupProxy.js） → Floci :4566
+ブラウザ → Amplify SDK → http://localhost:3000/cognito/* → setupProxy.js → Floci :4566
 ```
 
 CORS を回避するため、`setupProxy.js` で `/cognito` パスを Floci にプロキシしている。  
-`authService.ts` がサインイン成功後に `localStorage` へ `id_token` / `access_token` / `refresh_token` を保存し、  
-以降の API リクエストは `Authorization: Bearer <id_token>` ヘッダーを付与する。
+`DefaultPage.tsx` では `fetchAuthSession()` で ID トークンを取得し、API リクエストに `Authorization: Bearer <id_token>` を付与する。  
+ログアウトは `useAuthenticator()` の `signOut` を呼ぶだけで Amplify がトークンを破棄する。
 
 ### 環境変数（`.env.development`）
 
 | 変数名 | 説明 |
 |---|---|
-| `REACT_APP_COGNITO_ENDPOINT` | Cognito エンドポイント（開発時は `/cognito`） |
+| `REACT_APP_COGNITO_ENDPOINT` | Cognito エンドポイント（開発時は `http://localhost:3000/cognito`） |
 | `REACT_APP_COGNITO_CLIENT_ID` | Cognito アプリクライアント ID |
 | `REACT_APP_COGNITO_USER_POOL_ID` | Cognito ユーザープール ID |
 
@@ -128,7 +125,7 @@ npm test
 - **`AbortController` でクリーンアップ。** `useEffect` のクリーンアップ関数でリクエストをキャンセルし、アンマウント時の不要な state 更新を防ぐ。
 - **VSCode TypeScript Language Server の設定。** モノレポ構成のため `.vscode/settings.json` に `"typescript.tsdk": "packages/web/node_modules/typescript/lib"` を設定済み。
 - **Cognito CORS 回避。** ブラウザから `localhost:4566` に直接リクエストすると CORS エラーになる。`setupProxy.js` で `/cognito` を Floci にプロキシすることで回避している。開発サーバー再起動時に `setupProxy.js` が自動で読み込まれる。
-- **`AuthContext` の初期値。** `useState(AuthService.isLoggedIn())` で初回レンダリング時に `localStorage` から状態を同期的に読み込む。`useEffect` による非同期初期化では、未ログイン状態で一瞬レンダリングされてリダイレクトが発生するため使わない。
+- **Amplify の認証状態管理。** `<Authenticator>` が認証状態を管理するため、独自の `AuthContext` / `AuthService` は不要。`useAuthenticator()` でサインアウト、`fetchAuthSession()` でトークン取得を行う。
 
 ## 画像ファイルの扱い
 

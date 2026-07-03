@@ -1,5 +1,38 @@
 @charset "UTF-8";
 
+/* Amplify Authenticator テーマ */
+[data-amplify-authenticator] {
+  --amplify-colors-brand-primary-10: #f0fff4;
+  --amplify-colors-brand-primary-20: #c3f0cc;
+  --amplify-colors-brand-primary-40: #6fcf7f;
+  --amplify-colors-brand-primary-60: #3db85a;
+  --amplify-colors-brand-primary-80: #28a745;
+  --amplify-colors-brand-primary-90: #218838;
+  --amplify-colors-brand-primary-100: #155724;
+  --amplify-colors-background-primary: #e9ecef;
+  --amplify-radii-medium: 4px;
+  --amplify-radii-large: 8px;
+  --amplify-fonts-default-variable: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  --amplify-fonts-default-static: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  --amplify-components-authenticator-router-box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  --amplify-components-authenticator-router-border-width: 0;
+  --amplify-components-authenticator-form-padding: 20px 40px 40px;
+  --amplify-components-button-primary-background-color: #28a745;
+  --amplify-components-button-primary-hover-background-color: #218838;
+  --amplify-components-button-primary-active-background-color: #1e7e34;
+  --amplify-components-button-primary-font-weight: bold;
+  --amplify-components-fieldcontrol-border-color: #ccc;
+  --amplify-components-fieldcontrol-focus-border-color: #28a745;
+}
+
+/* ロゴ */
+.auth-logo {
+  color: #28a745;
+  font-size: 32px;
+  font-weight: bold;
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+}
+
 body {
   margin: 0;
   padding: 0;
