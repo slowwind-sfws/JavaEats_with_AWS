@@ -4,14 +4,17 @@ import '@aws-amplify/ui-react/styles.css';
 import { RouterProvider } from 'react-router-dom';
 import routesBasic from './route';
 
+const winEnv = (window as any)._env_ || {};
+const userPoolId = winEnv.REACT_APP_COGNITO_USER_POOL_ID || process.env.REACT_APP_COGNITO_USER_POOL_ID;
+const userPoolClientId = winEnv.REACT_APP_COGNITO_CLIENT_ID || process.env.REACT_APP_COGNITO_CLIENT_ID;
+const endpoint = winEnv.REACT_APP_COGNITO_ENDPOINT || process.env.REACT_APP_COGNITO_ENDPOINT;
+
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID!,
-      userPoolClientId: process.env.REACT_APP_COGNITO_CLIENT_ID!,
-      ...(process.env.REACT_APP_COGNITO_ENDPOINT
-        ? { userPoolEndpoint: process.env.REACT_APP_COGNITO_ENDPOINT }
-        : {}),
+      userPoolId: userPoolId!,
+      userPoolClientId: userPoolClientId!,
+      ...(endpoint ? { userPoolEndpoint: endpoint } : {}),
     }
   }
 });

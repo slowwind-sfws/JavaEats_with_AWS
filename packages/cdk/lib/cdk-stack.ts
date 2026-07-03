@@ -6,6 +6,7 @@ import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -43,6 +44,20 @@ export class CdkStack extends cdk.Stack {
           ec2.Subnet.fromSubnetId(this, 'Subnet2', 'subnet-0a53ffdb75738bbb4'),
         ],
       },
+    });
+
+    // Cognito ユーザープールとクライアントの作成
+    const userPool = new cognito.UserPool(this, 'JavaEatsUserPool', {
+      userPoolName: 'javaeats-user-pool',
+      selfSignUpEnabled: true,
+      signInAliases: { username: true, email: true },
+      autoVerify: { email: true },
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // 開発・検証デプロイ用。必要に応じて RETAIN に変更可能
+    });
+
+    const userPoolClient = new cognito.UserPoolClient(this, 'JavaEatsUserPoolClient', {
+      userPool,
+      authFlows: { adminUserPassword: true, userSrp: true },
     });
 
     // S3バケットの作成
@@ -118,9 +133,17 @@ export class CdkStack extends cdk.Stack {
       cloudWatchRole: true,
     });
 
+    // Cognito オーソライザーの追加
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'JavaEatsAuthorizer', {
+      cognitoUserPools: [userPool],
+    });
+
     const item = api.root.addResource('item');
     const list = item.addResource('list');
-    list.addMethod('GET', new apigateway.LambdaIntegration(itemListFunction));
+    list.addMethod('GET', new apigateway.LambdaIntegration(itemListFunction), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
 
     // CloudFrontディストリビューションの作成
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
@@ -145,9 +168,31 @@ export class CdkStack extends cdk.Stack {
       defaultRootObject: 'index.html'
     });
 
-    // S3バケットにReactアプリをデプロイ
+    // S3バケットにReactアプリをデプロイ（デプロイ時に動的ビルドを実行）
     new s3deploy.BucketDeployment(this, 'DeployWebsite', {
-      sources: [s3deploy.Source.asset('../web/build')],
+      sources: [
+        // 静的アセットのビルド（ビルド自体は環境変数に依存させず、常に共通の成果物を出力する）
+        s3deploy.Source.asset(path.join(__dirname, '..', '..', 'web'), {
+          bundling: {
+            image: cdk.DockerImage.fromRegistry('node:20-alpine'),
+            command: [
+              'sh',
+              '-c',
+              'npm ci && npm run build && cp -r build/* /asset-output/',
+            ],
+            user: 'root',
+          },
+        }),
+        // CDKデプロイ時に実際の値が確定する本番用環境設定ファイルを動的生成してS3に直接デプロイ
+        s3deploy.Source.data(
+          'env-config.js',
+          `window._env_ = {
+            REACT_APP_COGNITO_USER_POOL_ID: "${userPool.userPoolId}",
+            REACT_APP_COGNITO_CLIENT_ID: "${userPoolClient.userPoolClientId}",
+            REACT_APP_API_BASE: "/api"
+          };`
+        ),
+      ],
       destinationBucket: websiteBucket,
       distribution,
       distributionPaths: ['/*'],

@@ -38,6 +38,13 @@ packages/cdk/
 | Aurora SG へのインバウンドルール | Lambda SG → Aurora SG（`sg-0ae9bbe6a88477d97`）TCP 3306 |
 | CloudWatch Logs VPC Endpoint | Interface 型、subnet × 2 に配置 |
 
+### Cognito (ユーザー認証)
+
+| リソース | 内容 |
+|---|---|
+| User Pool (`JavaEatsUserPool`) | `javaeats-user-pool` (セルフサインアップ、Username・Email 認証、RemovalPolicy: DESTROY) |
+| User Pool Client (`JavaEatsUserPoolClient`) | `JavaEatsUserPoolClient` (SRP認証対応) |
+
 ### Lambda（item-service）
 
 | プロパティ | 値 |
@@ -71,10 +78,11 @@ Lambda 環境変数：
 | エンドポイント種別 | REGIONAL |
 | CORS | ALL_ORIGINS / ALL_METHODS / DEFAULT_HEADERS |
 | CloudWatch ログ | 有効 |
+| オーソライザー | `JavaEatsAuthorizer` (Cognito User Pool 連動) |
 
-| メソッド | パス | Lambda |
-|---|---|---|
-| GET | `/item/list` | itemListFunction（`listItems`） |
+| メソッド | パス | 認証 | Lambda |
+|---|---|---|---|
+| GET | `/item/list` | **Cognito 必須** | itemListFunction（`listItems`） |
 
 ### S3 バケット
 
@@ -93,9 +101,14 @@ Lambda 環境変数：
 - SPA のエラードキュメント: `index.html`
 - デプロイ後に `Hosting URL` として CloudFront ドメイン名を出力
 
-### BucketDeployment
+### BucketDeployment (動的ビルド ＆ 動的環境変数配置)
 
-`packages/web/build/` の成果物を S3 にアップロードし、CloudFront キャッシュを自動パージする。`memoryLimit: 512`（デフォルト 128MB ではメモリ不足になるため）。
+SPAデプロイを最適化するため、以下の2つの処理をデプロイ時に自動実行します。
+1. **コンテナによる React の自動ビルド (Bundling)**
+   - `node:20-alpine` コンテナをデプロイ時に起動し、`packages/web` のソースコードから `npm ci && npm run build` をクリーンビルドします。事前ビルドは不要です。
+2. **`env-config.js` の動的生成と直接配置**
+   - CDKトークン問題（ビルド時に実際のCognito IDが未確定である問題）を回避するため、デプロイ時に確定した `userPoolId` と `userPoolClientId` を書き込んだ `env-config.js` ファイルを動的に生成し、S3へ直接配置します。
+   - React側はこのスクリプトを `index.html` でロードし、`window._env_` からCognito設定値を動的に適用してAmplifyを初期化します。
 
 ## 主要コマンド
 
@@ -111,7 +124,7 @@ npx cdk synth
 # デプロイ済みスタックとの差分確認
 npx cdk diff
 
-# デプロイ（事前に packages/api と packages/web のビルドが必要）
+# デプロイ（ビルドからデプロイまでをコンテナで自動実行）
 npx cdk deploy
 ```
 
@@ -121,10 +134,7 @@ npx cdk deploy
 # 1. バックエンドのビルド
 cd packages/api && ./mvnw package -DskipTests
 
-# 2. フロントエンドのビルド
-cd packages/web && npm run build
-
-# 3. CDK デプロイ
+# 2. CDK デプロイ (フロントエンドのビルドと環境変数反映はCDKがコンテナで自動実行します)
 cd packages/cdk && npx cdk deploy
 ```
 
@@ -156,5 +166,5 @@ DB_PASSWORD=<master-password>
 - **`bin/cdk.ts` の `env` 設定**: `Vpc.fromLookup` を使うために `CDK_DEFAULT_ACCOUNT` / `CDK_DEFAULT_REGION` を設定済み。削除しないこと。
 - **DB 認証情報**: 現在は Lambda 環境変数に平文で設定（実験段階）。本番運用時は Secrets Manager への移行を検討すること。
 - **SnapStart**: 現在無効化中。Aurora 接続が安定したら再度有効化を検討する。
-- **CloudFront の `api/*` パス**: CloudFront から API Gateway へのオリジンパスは空文字（`''`）のため、`/api/item/list` → API Gateway は `/api/item/list` として受け取る。API Gateway のリソースパスと一致させること。
-- **BucketDeployment の前提**: `cdk deploy` 実行時に `../web/build/` が存在しないとデプロイが失敗する。必ずフロントエンドのビルドを先に行うこと。
+- **CloudFront の `api/*` パス**: CloudFront から API Gateway へのオリジンパス is 空文字（`''`）のため、`/api/item/list` → API Gateway は `/api/item/list` として受け取る。API Gateway のリソースパスと一致させること。
+- **SPA の環境変数（CDK Token 問題）**: React側はビルド時環境変数ではなく、S3に直接デプロイされる `/env-config.js` を実行時に読み込んでAmplifyのCognito設定を動的に行います。環境変数の変更は `cdk-stack.ts` の `s3deploy.Source.data` 設定を通じて実施します。
