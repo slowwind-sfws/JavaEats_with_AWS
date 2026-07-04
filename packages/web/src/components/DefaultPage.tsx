@@ -125,7 +125,7 @@ function DefaultPage() {
                   <div className="shop-name">{item.shopName}</div>
                   <h3 className="item-name">{item.itemName}</h3>
                   <div className="item-price">{item.price.toLocaleString()}円</div>
-                  <a href={`/order/input/${item.id}`} className="btn-order">注文する</a>
+                  <a href={`/item/${item.id}`} className="btn-order">注文する</a>
                 </div>
               </div>
             ))}

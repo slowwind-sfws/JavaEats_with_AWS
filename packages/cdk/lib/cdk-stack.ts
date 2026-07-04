@@ -118,6 +118,32 @@ export class CdkStack extends cdk.Stack {
       version: itemListFunction.currentVersion,
     });
 
+    const itemGetFunction = new lambda.Function(this, 'getItemFunc', {
+      ...lambdaCommonProps,
+      environment: {
+        SPRING_CLOUD_FUNCTION_DEFINITION: 'getItem',
+        ...dbEnv,
+      },
+    });
+
+    new lambda.Alias(this, 'ItemGetLiveAlias', {
+      aliasName: 'live',
+      version: itemGetFunction.currentVersion,
+    });
+
+    const itemCategoryFunction = new lambda.Function(this, 'listCategoriesFunc', {
+      ...lambdaCommonProps,
+      environment: {
+        SPRING_CLOUD_FUNCTION_DEFINITION: 'listCategories',
+        ...dbEnv,
+      },
+    });
+
+    new lambda.Alias(this, 'ItemCategoryLiveAlias', {
+      aliasName: 'live',
+      version: itemCategoryFunction.currentVersion,
+    });
+
     // API Gatewayを作成
     const api = new apigateway.RestApi(this, 'MyApi', {
       deployOptions: {
@@ -145,6 +171,18 @@ export class CdkStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    const category = item.addResource('category');
+    category.addMethod('GET', new apigateway.LambdaIntegration(itemCategoryFunction), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    const singleItem = item.addResource('{id}');
+    singleItem.addMethod('GET', new apigateway.LambdaIntegration(itemGetFunction), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // CloudFrontディストリビューションの作成
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
@@ -165,7 +203,22 @@ export class CdkStack extends cdk.Stack {
         }
       },
       // デフォルトルート
-      defaultRootObject: 'index.html'
+      defaultRootObject: 'index.html',
+      // S3に実ファイルが存在しないSPAルーティングへの直接アクセス対策 (403/404発生時に index.html を返す)
+      errorResponses: [
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+      ],
     });
 
     // S3バケットにReactアプリをデプロイ（デプロイ時に動的ビルドを実行）
