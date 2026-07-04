@@ -60,7 +60,7 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 | GET | `/item/{id}` | `getItem` | 商品1件取得 |
 | GET | `/item/category` | `listCategories` | カテゴリ一覧取得 |
 
-フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される（JWT 検証は未実装）。
+フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
 
 ### order-service（未実装）
 

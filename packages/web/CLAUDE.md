@@ -41,6 +41,7 @@ packages/web/
 | パス | コンポーネント | 状態 |
 |---|---|---|
 | `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・ログアウトボタン） |
+| `/item/:id` | `ItemDetailPage` | 実装済み（商品詳細表示、数量選択、カート追加レイアウト、戻るボタン） |
 | ログイン | Amplify `<Authenticator>` | 未認証時に自動表示（独自 `LoginPage` は削除済み） |
 | `/order/input/{id}` | — | 未実装 |
 | `/user/...` | — | 未実装 |
@@ -97,6 +98,7 @@ aws --endpoint-url=http://localhost:4566 cognito-idp admin-set-user-password \
 | `GET /item/list` | 商品一覧取得（起動時 + 検索時） |
 | `GET /item/list?keyword=xxx` | キーワード検索 |
 | `GET /item/list?categoryId=n` | カテゴリフィルター |
+| `GET /item/{id}` | 商品1件取得（詳細表示時） |
 
 本番環境では環境変数 `REACT_APP_API_BASE` で API のベース URL を指定する。
 

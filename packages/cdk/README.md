@@ -46,13 +46,10 @@ npx cdk deploy
 ## デプロイ前の準備
 
 ```bash
-# バックエンドビルド
+# 1. バックエンドのビルド
 cd packages/api && ./mvnw package -DskipTests
 
-# フロントエンドビルド
-cd packages/web && npm run build
-
-# デプロイ
+# 2. CDKデプロイ（フロントエンドのビルドと動的環境変数反映はCDKがコンテナで自動実行します）
 cd packages/cdk && npx cdk deploy
 ```
 

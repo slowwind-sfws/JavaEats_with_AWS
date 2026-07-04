@@ -60,7 +60,7 @@ packages/api/
 | `listCategories` | GET | `/item/category` | カテゴリ一覧取得 |
 
 フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。  
-現時点では JWT の検証は未実装（ヘッダーは受け取るが無視している）。今後 user-service 実装時に検証処理を追加予定。
+本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
 
 ### order-service（未実装）
 

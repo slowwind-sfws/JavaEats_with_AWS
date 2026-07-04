@@ -85,5 +85,5 @@ cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-n
 # 4. フロントエンド開発サーバー起動（port 3000、別ターミナル）
 cd packages/web && npm start
 # → http://localhost:3000
-# → ログイン画面 (/login) が表示される
+# → 未認証時は自動的に Amplify UI のサインイン画面が表示される。サインインに成功すると、商品一覧画面が表示され、各商品から商品詳細画面へと遷移可能。
 ```
