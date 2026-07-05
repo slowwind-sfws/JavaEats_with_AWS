@@ -70,3 +70,48 @@ Resources:
             RestApiId: !Ref MyAppApi
             Path: /item/category
             Method: get
+
+  OrderCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: order-service/target/order-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: createOrder
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /order
+            Method: post
+
+  OrderListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: order-service/target/order-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: listOrders
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /order/list
+            Method: get
+
+  OrderGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: order-service/target/order-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: getOrder
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /order/{id}
+            Method: get

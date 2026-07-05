@@ -17,6 +17,7 @@
 	<modules>
 		<module>shared</module>
 		<module>item-service</module>
+		<module>order-service</module>
 	</modules>
 
 	<properties>

@@ -78,9 +78,14 @@ cd packages/api && ./mvnw package -DskipTests
 
 # 3. ローカル API サーバー起動（port 8080）
 cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+# item-service
 # → http://127.0.0.1:8080/item/list
 # → http://127.0.0.1:8080/item/{id}
 # → http://127.0.0.1:8080/item/category
+# order-service（スケルトン実装済み）
+# → http://127.0.0.1:8080/order/list?userId=1
+# → http://127.0.0.1:8080/order/{id}
+# → POST http://127.0.0.1:8080/order
 
 # 4. フロントエンド開発サーバー起動（port 3000、別ターミナル）
 cd packages/web && npm start

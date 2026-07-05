@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="jp.co.ambl.javaeats.order.mapper.OrderMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (
+            user_id, 
+            item_id, 
+            quantity, 
+            order_price, 
+            shipping_fee, 
+            discount, 
+            total_price, 
+            order_date
+        ) VALUES (
+            #{userId}, 
+            #{itemId}, 
+            #{quantity}, 
+            #{orderPrice}, 
+            #{shippingFee}, 
+            #{discount}, 
+            #{totalPrice}, 
+            #{orderDate}
+        )
+    </insert>
+
+    <select id="findHistoryByUserId" resultType="jp.co.ambl.javaeats.order.dto.OrderResponse">
+        SELECT 
+            o.id AS orderId, 
+            i.item_name, 
+            s.shop_name, 
+            o.quantity, 
+            o.order_price, 
+            o.total_price, 
+            o.order_date
+        FROM orders o
+        INNER JOIN items i ON o.item_id = i.id
+        INNER JOIN shops s ON i.shop_id = s.id
+        WHERE o.user_id = #{userId}
+        ORDER BY order_date DESC
+    </select>
+
+    <select id="getOrderSummary" resultType="jp.co.ambl.javaeats.order.dto.OrderResponse">
+        SELECT 
+            COUNT(id) AS totalCount, 
+            COALESCE(SUM(total_price), 0) AS totalAmount
+        FROM orders 
+        WHERE user_id = #{userId}
+    </select>
+
+</mapper>

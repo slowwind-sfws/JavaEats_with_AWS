@@ -27,11 +27,13 @@ Spring Boot + Spring Cloud Function で Lambda 関数を実装し、API Gateway 
 packages/api/
 ├── pom.xml                          # 親 POM（共通依存・バージョン管理）
 ├── template.local.yaml              # sam local 専用（本番デプロイは packages/cdk が担当）
-├── shared/                          # 共通ライブラリ（entity を各サービスで共有）
+├── shared/                          # 共通ライブラリ（entity や共通ユーティリティを各サービスで共有）
 │   ├── pom.xml
 │   └── src/main/java/jp/co/ambl/javaeats/shared/
-│       └── entity/
-│           └── Category.java
+│       ├── entity/
+│       │   └── Category.java
+│       └── util/
+│           └── ResponseUtility.java      # ok, notFound, error の共通レスポンス
 ├── item-service/                    # 商品・カテゴリ（実装済み）
 │   ├── pom.xml
 │   ├── target/item-service-0.0.1-SNAPSHOT.jar
@@ -40,12 +42,19 @@ packages/api/
 │       ├── function/ItemFunctions.java   # listItems, getItem, listCategories
 │       ├── dto/                          # ItemSearchRequest, ItemResponse
 │       └── mapper/                       # ItemMapper, CategoryMapper
+└── order-service/                   # 注文管理（スケルトン実装済み）
+    ├── pom.xml
+    └── src/main/java/jp/co/ambl/javaeats/order/
+        ├── OrderServiceApplication.java
+        ├── function/OrderFunctions.java  # listOrders, getOrder, createOrder
+        ├── service/OrderService.java     # ビジネスロジック（仮金額計算、日時・主キー補完）
+        ├── dto/                          # OrderRequest, OrderResponse
+        └── mapper/                       # OrderMapper
 ```
 
 ### 今後追加予定
 
 ```
-├── order-service/                   # 注文管理（未実装）
 └── user-service/                    # ユーザー・認証（未実装）
 ```
 
@@ -62,13 +71,13 @@ packages/api/
 フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。  
 本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
 
-### order-service（未実装）
+### order-service（スケルトン実装済み）
 
 | Bean 名 | HTTP | パス | 説明 |
 |---|---|---|---|
-| `createOrder` | POST | `/order` | 注文作成 |
+| `listOrders` | GET | `/order/list` | 注文一覧取得（`userId` クエリパラメータ必須） |
 | `getOrder` | GET | `/order/{id}` | 注文1件取得 |
-| `listOrders` | GET | `/order/list` | 注文一覧取得 |
+| `createOrder` | POST | `/order` | 注文作成 |
 
 ### user-service（未実装）
 
@@ -93,10 +102,13 @@ cd packages/api && ./mvnw install -DskipTests
 cd localstack && docker compose up -d
 
 # ローカル API 起動（Maven ビルド後に実行）
-cd packages/api && sam local start-api -t template.local.yaml --docker-network sam-network
-# → http://127.0.0.1:3000/item/list
-# → http://127.0.0.1:3000/item/{id}
-# → http://127.0.0.1:3000/item/category
+cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+# → http://127.0.0.1:8080/item/list
+# → http://127.0.0.1:8080/item/{id}
+# → http://127.0.0.1:8080/item/category
+# → http://127.0.0.1:8080/order/list?userId=1
+# → http://127.0.0.1:8080/order/{id}
+# → POST http://127.0.0.1:8080/order
 
 # テスト実行
 cd packages/api && ./mvnw test
@@ -117,6 +129,7 @@ cd packages/api && ./mvnw test
 - SnapStart (`ApplyOn: PublishedVersions`) が有効。本番では `AutoPublishAlias: live` で管理される。
 - GET 関数でパスパラメータ・クエリパラメータを取得するには `Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>` を使う（`Function<Integer, T>` では受け取れない）。
 - `ObjectMapper` は `spring-boot-starter-web` がないと Bean 登録されないため `new ObjectMapper()` で直接生成する。
+- **`LocalDateTime` は使用しない。** `spring-boot-starter-web` がない環境で `new ObjectMapper()` を直接生成すると、`LocalDateTime` は `[2026,7,5,10,30,0]` のような数値配列としてシリアライズされる。`jackson-datatype-jsr310` の `JavaTimeModule` を使えば解決できるが、依存を増やさないため日時フィールドは `String` 型で定義する（`springboot-food-delivery-system` の元実装も同様の方針）。MyBatis 側は `String` マッピングで MySQL の `DATETIME` 型を自動変換する。
 
 ## データベーススキーマ概要
 
@@ -134,9 +147,11 @@ cd packages/api && ./mvnw test
 
 DB 接続設定は環境変数フォールバック形式に変更済み。ローカルでは環境変数未設定時に Docker の MySQL へ接続する。
 
-| プロパティ | ローカルデフォルト | 本番（Lambda 環境変数で上書き） |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/db` | Aurora エンドポイント |
-| `SPRING_DATASOURCE_USERNAME` | `user` | `dbadmin` |
-| `SPRING_DATASOURCE_PASSWORD` | `password` | （CDK で設定） |
-| `SPRING_SQL_INIT_MODE` | `always` | `always`（実験段階） |
+| プロパティ | item-service デフォルト | order-service デフォルト | 本番（Lambda 環境変数で上書き） |
+|---|---|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/db` | 同左 | Aurora エンドポイント |
+| `SPRING_DATASOURCE_USERNAME` | `user` | 同左 | `dbadmin` |
+| `SPRING_DATASOURCE_PASSWORD` | `password` | 同左 | （CDK で設定） |
+| `SPRING_SQL_INIT_MODE` | `always` | **`never`** | （サービスごとに設定） |
+
+`order-service` の `sql.init.mode` を `never` にしている理由: スキーマ定義（`schema.sql`）とテストデータ（`data.sql`）は `item-service` にのみ置いており、`order-service` が起動時に DROP/CREATE を実行すると既存データが消えるため。
