@@ -9,6 +9,6 @@ import java.util.List;
 @Mapper
 public interface OrderMapper {
     void insert(OrderRequest request);
-    List<OrderResponse> findHistoryByUserId(Integer userId);
-    OrderResponse getOrderSummary(Integer userId);
+    List<OrderResponse> findHistoryByUserId(String userId);
+    OrderResponse getOrderSummary(String userId);
 }

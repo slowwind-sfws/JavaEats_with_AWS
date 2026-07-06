@@ -42,9 +42,8 @@ public class OrderFunctions {
         return request -> {
             try {
                 Map<String, String> params = request.getQueryStringParameters();
-                Integer userId = (params != null && params.get("userId") != null)
-                        ? Integer.parseInt(params.get("userId")) : null;
-                if (userId == null) {
+                String userId = (params != null) ? params.get("userId") : null;
+                if (userId == null || userId.isBlank()) {
                     return ResponseUtility.error(400, "userId is required");
                 }
                 List<OrderResponse> orders = orderService.getOrderHistory(userId);
@@ -63,7 +62,7 @@ public class OrderFunctions {
         return request -> {
             try {
                 Map<String, String> pathParams = request.getPathParameters();
-                Integer id = Integer.parseInt(pathParams.get("id"));
+                String id = pathParams.get("id");
                 OrderResponse order = orderService.getOrderSummary(id);
                 if (order == null) {
                     return ResponseUtility.notFound();

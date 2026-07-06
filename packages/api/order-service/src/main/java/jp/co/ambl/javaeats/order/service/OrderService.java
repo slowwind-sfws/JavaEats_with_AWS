@@ -21,14 +21,14 @@ public class OrderService {
     /**
      * ユーザーIDに紐づく注文履歴一覧を取得
      */
-    public List<OrderResponse> getOrderHistory(Integer userId) {
+    public List<OrderResponse> getOrderHistory(String userId) {
         return orderMapper.findHistoryByUserId(userId);
     }
 
     /**
      * ユーザーIDに紐づく注文サマリー（合計件数・合計金額）を取得
      */
-    public OrderResponse getOrderSummary(Integer userId) {
+    public OrderResponse getOrderSummary(String userId) {
         return orderMapper.getOrderSummary(userId);
     }
 

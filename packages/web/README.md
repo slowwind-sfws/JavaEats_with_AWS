@@ -29,8 +29,10 @@ packages/web/
 │   ├── route.tsx        # ルート定義
 │   ├── setupProxy.js    # CRA プロキシ設定（Cognito CORS 回避）
 │   └── components/
-│       ├── DefaultPage.tsx   # 商品一覧ページ（認証ガード付き）
-│       └── ItemDetailPage.tsx # 商品詳細ページ（認証ガード付き）
+│       ├── DefaultPage.tsx      # 商品一覧ページ
+│       ├── ItemDetailPage.tsx   # 商品詳細・注文入力ページ
+│       ├── OrderConfirmPage.tsx # 注文確認ページ
+│       └── OrderCompletePage.tsx # 注文完了ページ
 └── package.json
 ```
 
@@ -61,8 +63,9 @@ npm start
 | パス | 内容 | 状態 |
 |---|---|---|
 | `/` | 商品一覧（検索・カテゴリフィルター・ログアウトボタン） | 実装済み |
-| `/item/:id` | 商品詳細（詳細情報表示、数量選択、カート追加レイアウト、戻るボタン） | 実装済み |
-| `/order/input/{id}` | 注文入力 | 未実装 |
+| `/item/:id` | 商品詳細・注文入力（数量・住所入力、金額計算、確認画面へ遷移） | 実装済み |
+| `/order/confirm` | 注文確認（注文内容表示、POST /order 呼び出し、修正へ戻る） | 実装済み |
+| `/order/complete` | 注文完了 | 実装済み |
 | `/user/...` | ユーザー登録・マイページ | 未実装 |
 
 ※ 未認証時は、Amplify UI の `<Authenticator>` により自動的にサインイン画面が表示されます。

@@ -65,7 +65,7 @@ function ItemDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, apiBase]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: { quantity?: string; address?: string } = {};
 
@@ -75,21 +75,38 @@ function ItemDetailPage() {
     if (!address.trim()) {
       errors.address = 'お届け先住所を入力してください';
     }
-
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
 
     setFormErrors({});
-    // 注文機能はまだ未実装のため、アラートで確認できるようにします
-    alert(`注文入力が確認されました！\n商品名: ${item?.itemName}\n数量: ${quantity}個\nお届け先: ${address}\n\n※この機能は確認画面へのモックアップです。`);
-    console.log('Order simulation submitted:', {
-      itemId: item?.id,
-      itemName: item?.itemName,
-      price: item?.price,
-      quantity,
-      address,
+
+    // 金額計算（元の OrderService.calculateTotal をフロントでトレース）
+    const orderPrice = item!.price * quantity;        // 小計
+    const shippingFee = orderPrice >= 3000 ? 0 : 500; // 3000円以上で送料無料
+    const discount = 0;                               // ランク機能は未実装
+    const totalPrice = orderPrice + shippingFee - discount;
+
+    // Cognito sub を userId として取得
+    const session = await fetchAuthSession();
+    const userId = session.tokens?.idToken?.payload?.sub as string;
+
+    // 確認ページへ遷移（state でデータを受け渡し）
+    navigate('/order/confirm', {
+      state: {
+        userId,
+        itemId: item!.id,
+        itemName: item!.itemName,
+        shopName: item!.shopName,
+        price: item!.price,
+        quantity,
+        address,
+        orderPrice,
+        shippingFee,
+        discount,
+        totalPrice,
+      },
     });
   };
 

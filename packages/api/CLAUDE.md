@@ -71,12 +71,12 @@ packages/api/
 フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。  
 本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
 
-### order-service（スケルトン実装済み）
+### order-service（実装済み）
 
 | Bean 名 | HTTP | パス | 説明 |
 |---|---|---|---|
-| `listOrders` | GET | `/order/list` | 注文一覧取得（`userId` クエリパラメータ必須） |
-| `getOrder` | GET | `/order/{id}` | 注文1件取得 |
+| `listOrders` | GET | `/order/list` | 注文一覧取得（`userId` クエリパラメータ必須、Cognito sub を渡す） |
+| `getOrder` | GET | `/order/{id}` | 注文サマリー取得（`{id}` は実態として userId＝Cognito sub） |
 | `createOrder` | POST | `/order` | 注文作成 |
 
 ### user-service（未実装）
@@ -135,13 +135,15 @@ cd packages/api && ./mvnw test
 
 | テーブル | 主な用途 | 担当サービス |
 |---|---|---|
-| `users` | ユーザー（rank_code: 1=一般 / 2=プレミアム / 3=VIP） | user-service |
+| `users` | ユーザー（`id` は Cognito sub の VARCHAR(50)、rank_code: 1=一般 / 2=プレミアム / 3=VIP） | user-service |
 | `categories` | 料理カテゴリ | item-service / shared |
 | `shops` | 店舗（category_id で分類） | item-service |
 | `items` | 商品（shop_id, price, image_path） | item-service |
-| `orders` | 注文（user_id, item_id, quantity, total_price 等） | order-service |
+| `orders` | 注文（user_id は Cognito sub の VARCHAR(50)、item_id, quantity, total_price 等） | order-service |
 
 `schema.sql` / `data.sql` は `spring.sql.init.mode=always` でアプリ起動時に毎回実行される（ローカル・本番ともに）。
+
+> **注意（ローカル開発）:** `schema.sql` は `DROP TABLE IF EXISTS` から始まるため、item-service の Lambda がコールドスタートするたびに全テーブルがリセットされる。注文データが消えた場合は item-service へのリクエスト（商品一覧・商品詳細の取得など）によるコールドスタートが原因。本番環境では Lambda が常駐するため問題は発生しないが、ローカルでデータを維持したい場合は `schema.sql` の `DROP TABLE` を `CREATE TABLE IF NOT EXISTS` に変更し、`data.sql` を `INSERT IGNORE` に書き換えること。
 
 ## application.properties の環境変数対応
 

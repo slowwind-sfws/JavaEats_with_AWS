@@ -32,7 +32,10 @@ packages/web/
 │   ├── route.tsx                    # ルート定義
 │   ├── setupProxy.js                # CRA プロキシ設定（Cognito CORS 回避）
 │   └── components/
-│       └── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング）
+│       ├── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング）
+│       ├── ItemDetailPage.tsx       # 商品詳細・注文入力ページ
+│       ├── OrderConfirmPage.tsx     # 注文確認ページ
+│       └── OrderCompletePage.tsx    # 注文完了ページ
 └── package.json
 ```
 
@@ -41,9 +44,10 @@ packages/web/
 | パス | コンポーネント | 状態 |
 |---|---|---|
 | `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・ログアウトボタン） |
-| `/item/:id` | `ItemDetailPage` | 実装済み（商品詳細表示、数量選択、カート追加レイアウト、戻るボタン） |
+| `/item/:id` | `ItemDetailPage` | 実装済み（商品詳細表示、数量・住所入力、金額計算、確認画面へ遷移） |
+| `/order/confirm` | `OrderConfirmPage` | 実装済み（注文内容確認、POST /order 呼び出し、修正へ戻る） |
+| `/order/complete` | `OrderCompletePage` | 実装済み（注文完了表示、一覧へ戻る） |
 | ログイン | Amplify `<Authenticator>` | 未認証時に自動表示（独自 `LoginPage` は削除済み） |
-| `/order/input/{id}` | — | 未実装 |
 | `/user/...` | — | 未実装 |
 
 ## 認証フロー（Cognito + Amplify UI）

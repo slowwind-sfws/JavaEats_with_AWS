@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS users;
 -- 1. ユーザーテーブル (ランクはJavaで計算するため数値のみ保持)
 -- ==========================================
 CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(50) PRIMARY KEY,   -- Cognito sub をそのまま格納
     user_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(100) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE items (
 -- ==========================================
 CREATE TABLE orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,  -- Cognito sub
     item_id INT NOT NULL,
     quantity INT NOT NULL,
     order_price INT NOT NULL,

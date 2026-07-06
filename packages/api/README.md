@@ -27,7 +27,7 @@ packages/api/
 │       └── util/ResponseUtility.java  # 共通レスポンス
 ├── item-service/                    # 商品・カテゴリ（実装済み）
 │   └── target/item-service-0.0.1-SNAPSHOT.jar
-├── order-service/                   # 注文管理（スケルトン実装済み）
+├── order-service/                   # 注文管理（実装済み）
 │   └── src/.../order/
 │       ├── service/OrderService.java  # ビジネスロジック（金額計算・主キー補完）
 │       └── ...
@@ -67,12 +67,12 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 
 フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
 
-### order-service（スケルトン実装済み）
+### order-service（実装済み）
 
 | メソッド | パス | Bean 名 | 説明 |
 |---|---|---|---|
-| GET | `/order/list` | `listOrders` | 注文一覧取得（`userId` クエリパラメータ必須） |
-| GET | `/order/{id}` | `getOrder` | 注文1件取得 |
+| GET | `/order/list` | `listOrders` | 注文一覧取得（`userId` クエリパラメータ必須、Cognito sub を渡す） |
+| GET | `/order/{id}` | `getOrder` | 注文サマリー取得（`{id}` は実態として userId＝Cognito sub） |
 | POST | `/order` | `createOrder` | 注文作成 |
 
 ### user-service（未実装）
@@ -88,7 +88,7 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 |---|---|---|
 | shared | `jp.co.ambl.javaeats.shared` | 実装済み（Category entity） |
 | item-service | `jp.co.ambl.javaeats.item` | 実装済み |
-| order-service | `jp.co.ambl.javaeats.order` | スケルトン実装済み（ビジネスロジック未実装） |
+| order-service | `jp.co.ambl.javaeats.order` | 実装済み（POST /order 注文作成・動作確認済み） |
 | user-service | `jp.co.ambl.javaeats.user` | 未実装 |
 
 ## 設計上の注意点
@@ -99,10 +99,12 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 この場合 `jackson-datatype-jsr310` の `JavaTimeModule` が自動登録されず、`LocalDateTime` は `[2026,7,5,10,30,0]` のような数値配列でシリアライズされてしまう。  
 依存を増やさないため、日時フィールドは **`String` 型**で定義する。MyBatis が MySQL の `DATETIME` 型を `String` に自動変換する。
 
-### sql.init.mode の分担
+### sql.init.mode の分担とローカルでのデータリセット問題
 
 スキーマ（`schema.sql`）とテストデータ（`data.sql`）は `item-service` のみに置いている。  
 `order-service` で `sql.init.mode=always` にすると起動時に DROP/CREATE が走り既存データが失われるため、`order-service` の `application.properties` は `sql.init.mode=never` に設定している。
+
+**注意（ローカル開発）:** `schema.sql` は `DROP TABLE IF EXISTS` から始まるため、item-service の Lambda がコールドスタートするたびに全テーブルがリセットされる。商品一覧や商品詳細を取得するリクエストを送ると item-service がコールドスタートし、その時点で orders テーブルも含めた全データが初期化される。本番環境では Lambda が常駐するため問題は発生しない。ローカルでデータを維持したい場合は `schema.sql` の `DROP TABLE` を `CREATE TABLE IF NOT EXISTS` に変更し、`data.sql` を `INSERT IGNORE` に書き換えること。
 
 ## デプロイ
 

@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class OrderRequest {
     private Integer id; // MyBatisの useGeneratedKeys="true" keyProperty="id" に対応するために追加
-    private Integer userId;
+    private String userId;
     private Integer itemId;
     private Integer quantity;
 
