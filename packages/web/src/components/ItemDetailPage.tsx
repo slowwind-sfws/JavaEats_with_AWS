@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import Header from './Header';
+import { apiBase } from '../config';
 
 type ItemResponse = {
   id: number;
@@ -25,7 +26,6 @@ function ItemDetailPage() {
   const [address, setAddress] = useState<string>('');
   const [formErrors, setFormErrors] = useState<{ quantity?: string; address?: string }>({});
 
-  const apiBase = process.env.REACT_APP_API_BASE || '';
 
   const getAuthHeaders = async (): Promise<HeadersInit> => {
     const session = await fetchAuthSession();

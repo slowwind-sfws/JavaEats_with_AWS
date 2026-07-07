@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom';
 import routesBasic from './route';
 import { useEffect, useRef } from 'react';
 import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
+import { apiBase } from './config';
 
 const winEnv = (window as any)._env_ || {};
 const userPoolId = winEnv.REACT_APP_COGNITO_USER_POOL_ID || process.env.REACT_APP_COGNITO_USER_POOL_ID;
@@ -84,7 +85,6 @@ function MainApp() {
         const session = await fetchAuthSession();
         const idToken = session.tokens?.idToken?.toString();
         const user = await getCurrentUser();
-        const apiBase = process.env.REACT_APP_API_BASE || '';
 
         if (!idToken || !user) return;
 

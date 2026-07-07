@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchAuthSession, getCurrentUser, deleteUser } from 'aws-amplify/auth';
 import Header from './Header';
+import { apiBase } from '../config';
 
 type UserProfile = {
   id: string;
@@ -36,7 +37,6 @@ function UserProfilePage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const apiBase = process.env.REACT_APP_API_BASE || '';
 
   const getAuthHeaders = async (): Promise<HeadersInit> => {
     const session = await fetchAuthSession();
@@ -61,22 +61,27 @@ function UserProfilePage() {
 
         // 1. プロフィール情報取得
         const profileRes = await fetch(`${apiBase}/user/${user.userId}`, { headers });
-        if (profileRes.ok) {
+        if (profileRes.ok && (profileRes.headers.get('content-type') || '').includes('application/json')) {
           const profileData: UserProfile = await profileRes.json();
           setProfile(profileData);
           setUserName(profileData.userName || '');
           setZipCode(profileData.zipCode || '');
           setAddress(profileData.address || '');
           setPhoneNumber(profileData.phoneNumber || '');
+        } else if (!profileRes.ok) {
+          console.warn('Profile not found (status:', profileRes.status, ')');
         } else {
-          console.warn('Profile not found, maybe not registered yet in DB.');
+          console.error('Unexpected non-JSON response for profile. apiBase:', apiBase, 'URL:', profileRes.url);
+          setErrorMsg('APIの設定に問題があります。管理者に連絡してください。');
         }
 
         // 2. 注文履歴取得 (Cognito sub をクエリパラメータ userId に渡す)
         const historyRes = await fetch(`${apiBase}/order/list?userId=${user.userId}`, { headers });
-        if (historyRes.ok) {
+        if (historyRes.ok && (historyRes.headers.get('content-type') || '').includes('application/json')) {
           const historyData: OrderHistory[] = await historyRes.json();
           setHistoryList(Array.isArray(historyData) ? historyData : []);
+        } else if (!historyRes.ok) {
+          console.warn('Order history fetch failed (status:', historyRes.status, ')');
         }
       } catch (e: any) {
         console.error('Failed to load user profile or history:', e);

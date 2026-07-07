@@ -76,7 +76,6 @@ Lambda 共通環境変数：
 | `SPRING_DATASOURCE_URL` | `jdbc:mysql://shared.cluster-c1ygeeuiuvel.ap-northeast-1.rds.amazonaws.com:3306/db` |
 | `SPRING_DATASOURCE_USERNAME` | `dbadmin` |
 | `SPRING_DATASOURCE_PASSWORD` | （設定済み・実験段階） |
-| `SPRING_SQL_INIT_MODE` | `always`（起動毎に DROP→CREATE→データ投入） |
 
 ### API Gateway（RestApi）
 
@@ -181,11 +180,26 @@ DB_PASSWORD=<master-password>
 `.env` が存在しない状態で `cdk deploy` / `cdk diff` / `cdk synth` を実行するとエラーになります。  
 実際の接続情報は担当者に確認してください。
 
+## 本番 Aurora DB の初期化（初回・再構築時のみ）
+
+> **重要:** `SPRING_SQL_INIT_MODE` は全 Lambda で `never`（デフォルト）に設定されています。Lambda コールドスタート時にテーブルが DROP されることはありません。
+> 初回デプロイ時または DB を再構築する場合は、以下を手動で Aurora に流し込んでください。
+
+```bash
+# 接続情報は packages/cdk/.env を参照
+mysql -h <CLUSTER_ENDPOINT> -u <USERNAME> -p<PASSWORD> db \
+  < packages/api/item-service/src/main/resources/schema.sql
+mysql -h <CLUSTER_ENDPOINT> -u <USERNAME> -p<PASSWORD> db \
+  < packages/api/item-service/src/main/resources/data.sql
+```
+
 ## 注意点
 
 - **`cdk destroy` と VPC ENI**: Lambda を VPC 内に配置しているため、`cdk destroy` 時に ENI 削除が20分以上詰まることがある。通常の開発では `cdk destroy` を使わず `cdk deploy` で上書きすること。どうしても必要な場合は CloudFormation コンソールで該当リソースを「スキップ」して強制完了させる。
 - **`bin/cdk.ts` の `env` 設定**: `Vpc.fromLookup` を使うために `CDK_DEFAULT_ACCOUNT` / `CDK_DEFAULT_REGION` を設定済み。削除しないこと。
 - **DB 認証情報**: 現在は Lambda 環境変数に平文で設定（実験段階）。本番運用時は Secrets Manager への移行を検討すること。
 - **SnapStart**: 現在無効化中。Aurora 接続が安定したら再度有効化を検討する。
-- **CloudFront の `api/*` パス**: CloudFront から API Gateway へのオリジンパス is 空文字（`''`）のため、`/api/item/list` → API Gateway は `/api/item/list` として受け取る。API Gateway のリソースパスと一致させること。
+- **CloudFront の `api/*` パス**: CloudFront から API Gateway へのオリジンパスは空文字（`''`）のため、`/api/item/list` → API Gateway は `/api/item/list` として受け取る。API Gateway のリソースパスと一致させること。
+- **CloudFront の `api/*` ビヘイビアには `allowedMethods: ALLOW_ALL` が必須**: 未設定だとデフォルトの GET/HEAD のみになり、POST/PUT が 403 で弾かれる。
+- **CloudFront の `errorResponses` は API エラーも横取りする**: S3 SPA 用に 404/403 → `index.html` を設定すると、API Gateway の 404/403 も index.html（200）に変換されてしまう。SPA ルーティングは `errorResponses` ではなく CloudFront Function（Viewer Request）で `/index.html` に書き換える方式を採用している。
 - **SPA の環境変数（CDK Token 問題）**: React側はビルド時環境変数ではなく、S3に直接デプロイされる `/env-config.js` を実行時に読み込んでAmplifyのCognito設定を動的に行います。環境変数の変更は `cdk-stack.ts` の `s3deploy.Source.data` 設定を通じて実施します。

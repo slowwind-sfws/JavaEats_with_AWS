@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import Header from './Header';
+import { apiBase } from '../config';
 
 type OrderState = {
   userId: string;
@@ -25,7 +26,6 @@ function OrderConfirmPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiBase = process.env.REACT_APP_API_BASE || '';
 
   const getAuthHeaders = async (): Promise<HeadersInit> => {
     const session = await fetchAuthSession();

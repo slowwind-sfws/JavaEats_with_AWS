@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import Header from './Header';
+import { apiBase } from '../config';
 
 type ItemResponse = {
   id: number;
@@ -22,7 +23,6 @@ function DefaultPage() {
   const [keyword, setKeyword] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const apiBase = process.env.REACT_APP_API_BASE || '';
 
   const getAuthHeaders = async (): Promise<HeadersInit> => {
     const session = await fetchAuthSession();

@@ -84,7 +84,6 @@ export class CdkStack extends cdk.Stack {
       SPRING_DATASOURCE_URL: dbUrl,
       SPRING_DATASOURCE_USERNAME: dbUsername,
       SPRING_DATASOURCE_PASSWORD: dbPassword,
-      SPRING_SQL_INIT_MODE: 'always',
     };
 
     const lambdaCommonProps = {
@@ -130,12 +129,19 @@ export class CdkStack extends cdk.Stack {
 
     const itemJarPath = '../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar';
     const orderJarPath = '../api/order-service/target/order-service-0.0.1-SNAPSHOT.jar';
+    const userJarPath = '../api/user-service/target/user-service-0.0.1-SNAPSHOT.jar';
 
     // Lambda関数を作成
     const itemListFunction = createSpringLambda('listItems', itemJarPath);
     const itemGetFunction = createSpringLambda('getItem', itemJarPath);
     const itemCategoryFunction = createSpringLambda('listCategories', itemJarPath);
     const createOrderFunction = createSpringLambda('createOrder', orderJarPath);
+    const orderListFunction = createSpringLambda('listOrders', orderJarPath);
+    const orderGetFunction = createSpringLambda('getOrder', orderJarPath);
+
+    const userRegisterFunction = createSpringLambda('registerUser', userJarPath);
+    const userGetFunction = createSpringLambda('getUser', userJarPath);
+    const userUpdateFunction = createSpringLambda('updateUser', userJarPath);
 
     // API Gatewayを作成
     const api = new apigateway.RestApi(this, 'MyApi', {
@@ -171,6 +177,11 @@ export class CdkStack extends cdk.Stack {
       { path: 'item/category', method: 'GET', fn: itemCategoryFunction },
       { path: 'item/{id}', method: 'GET', fn: itemGetFunction },
       { path: 'order', method: 'POST', fn: createOrderFunction },
+      { path: 'order/list', method: 'GET', fn: orderListFunction },
+      { path: 'order/{id}', method: 'GET', fn: orderGetFunction },
+      { path: 'user/register', method: 'POST', fn: userRegisterFunction },
+      { path: 'user/{id}', method: 'GET', fn: userGetFunction },
+      { path: 'user/{id}', method: 'PUT', fn: userUpdateFunction },
     ];
 
     // ループで一括登録とCognito認証適用
@@ -182,14 +193,32 @@ export class CdkStack extends cdk.Stack {
       });
     });
 
+    // SPA ルーティング用 CloudFront Function
+    // .を含まない（=静的ファイルでない）かつ /api で始まらないパスは /index.html に書き換える
+    const spaRoutingFunction = new cloudfront.Function(this, 'SpaRoutingFunction', {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (!uri.startsWith('/api') && !uri.includes('.')) {
+    request.uri = '/index.html';
+  }
+  return request;
+}
+      `),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+    });
+
     // CloudFrontディストリビューションの作成
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(websiteBucket),
-        // HTTPSへのリダイレクト
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        // キャッシュ設定
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED //CACHING_OPTIMIZED,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        functionAssociations: [{
+          function: spaRoutingFunction,
+          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+        }],
       },
       additionalBehaviors: {
         'api/*': {
@@ -199,25 +228,10 @@ export class CdkStack extends cdk.Stack {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
           originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
         }
       },
-      // デフォルトルート
       defaultRootObject: 'index.html',
-      // S3に実ファイルが存在しないSPAルーティングへの直接アクセス対策 (403/404発生時に index.html を返す)
-      errorResponses: [
-        {
-          httpStatus: 403,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-      ],
     });
 
     // S3バケットにReactアプリをデプロイ（デプロイ時に動的ビルドを実行）
