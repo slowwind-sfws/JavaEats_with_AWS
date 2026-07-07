@@ -90,7 +90,6 @@ export class CdkStack extends cdk.Stack {
     const lambdaCommonProps = {
       runtime: lambda.Runtime.JAVA_21,
       handler: 'org.springframework.cloud.function.adapter.aws.FunctionInvoker',
-      code: lambda.Code.fromAsset('../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
       // snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS, // 初期化失敗の切り分けのため一時無効化
@@ -104,45 +103,39 @@ export class CdkStack extends cdk.Stack {
       securityGroups: [lambdaSg],
     };
 
+    // ヘルパー関数の定義
+    const createSpringLambda = (
+      definition: string,
+      jarPath: string
+    ) => {
+      const funcId = `${definition}Func`;
+      
+      const fn = new lambda.Function(this, funcId, {
+        ...lambdaCommonProps,
+        code: lambda.Code.fromAsset(jarPath),
+        environment: {
+          SPRING_CLOUD_FUNCTION_DEFINITION: definition,
+          ...dbEnv,
+        },
+      });
+
+      const aliasPascalId = definition.charAt(0).toUpperCase() + definition.slice(1);
+      new lambda.Alias(this, `${aliasPascalId}LiveAlias`, {
+        aliasName: 'live',
+        version: fn.currentVersion,
+      });
+
+      return fn;
+    };
+
+    const itemJarPath = '../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar';
+    const orderJarPath = '../api/order-service/target/order-service-0.0.1-SNAPSHOT.jar';
+
     // Lambda関数を作成
-    const itemListFunction = new lambda.Function(this, 'defaultFunc', {
-      ...lambdaCommonProps,
-      environment: {
-        SPRING_CLOUD_FUNCTION_DEFINITION: 'listItems',
-        ...dbEnv,
-      },
-    });
-
-    new lambda.Alias(this, 'ItemListLiveAlias', {
-      aliasName: 'live',
-      version: itemListFunction.currentVersion,
-    });
-
-    const itemGetFunction = new lambda.Function(this, 'getItemFunc', {
-      ...lambdaCommonProps,
-      environment: {
-        SPRING_CLOUD_FUNCTION_DEFINITION: 'getItem',
-        ...dbEnv,
-      },
-    });
-
-    new lambda.Alias(this, 'ItemGetLiveAlias', {
-      aliasName: 'live',
-      version: itemGetFunction.currentVersion,
-    });
-
-    const itemCategoryFunction = new lambda.Function(this, 'listCategoriesFunc', {
-      ...lambdaCommonProps,
-      environment: {
-        SPRING_CLOUD_FUNCTION_DEFINITION: 'listCategories',
-        ...dbEnv,
-      },
-    });
-
-    new lambda.Alias(this, 'ItemCategoryLiveAlias', {
-      aliasName: 'live',
-      version: itemCategoryFunction.currentVersion,
-    });
+    const itemListFunction = createSpringLambda('listItems', itemJarPath);
+    const itemGetFunction = createSpringLambda('getItem', itemJarPath);
+    const itemCategoryFunction = createSpringLambda('listCategories', itemJarPath);
+    const createOrderFunction = createSpringLambda('createOrder', orderJarPath);
 
     // API Gatewayを作成
     const api = new apigateway.RestApi(this, 'MyApi', {
@@ -164,23 +157,29 @@ export class CdkStack extends cdk.Stack {
       cognitoUserPools: [userPool],
     });
 
-    const item = api.root.addResource('item');
-    const list = item.addResource('list');
-    list.addMethod('GET', new apigateway.LambdaIntegration(itemListFunction), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
+    // パスからネストされたリソースを自動生成・取得するヘルパー
+    const getOrCreateResource = (root: apigateway.IResource, path: string): apigateway.IResource => {
+      return path.split('/').reduce((parent, segment) => {
+        if (!segment) return parent;
+        return parent.getResource(segment) ?? parent.addResource(segment);
+      }, root);
+    };
 
-    const category = item.addResource('category');
-    category.addMethod('GET', new apigateway.LambdaIntegration(itemCategoryFunction), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
+    // ルート定義の宣言
+    const routes = [
+      { path: 'item/list', method: 'GET', fn: itemListFunction },
+      { path: 'item/category', method: 'GET', fn: itemCategoryFunction },
+      { path: 'item/{id}', method: 'GET', fn: itemGetFunction },
+      { path: 'order', method: 'POST', fn: createOrderFunction },
+    ];
 
-    const singleItem = item.addResource('{id}');
-    singleItem.addMethod('GET', new apigateway.LambdaIntegration(itemGetFunction), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
+    // ループで一括登録とCognito認証適用
+    routes.forEach(({ path, method, fn }) => {
+      const resource = getOrCreateResource(api.root, path);
+      resource.addMethod(method, new apigateway.LambdaIntegration(fn), {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      });
     });
 
     // CloudFrontディストリビューションの作成

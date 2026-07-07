@@ -8,8 +8,8 @@ AWS CDK（TypeScript）で Lambda・API Gateway・S3・CloudFront・VPC を一�
 ## デプロイされるリソース
 
 - **VPC**（既存インポート）+ **セキュリティグループ**（Lambda 用）+ **CloudWatch Logs VPC Endpoint**
-- **Lambda**（`item-service`）: Spring Cloud Function で実装した商品一覧 API、VPC 内 private subnet に配置
-- **API Gateway**（RestApi）: `/item/list` エンドポイント、CORS 設定済み
+- **Lambda**（`item-service` / `order-service`）: Spring Cloud Function で実装した商品 API（一覧、カテゴリ、個別取得）および新規注文登録 API。VPC 内 private subnet に配置
+- **API Gateway**（RestApi）: `/item/list`、`/item/category`、`/item/{id}`、`/order` エンドポイント。CORS 及び Cognito 認証適用。スタック側では routes 配列を用いた宣言的なリファクタリングを実施。
 - **S3 バケット**: React ビルド成果物ホスティング（CloudFront OAC 経由のみ）
 - **CloudFront Distribution**: S3（フロントエンド）+ API Gateway（`api/*`）をまとめて配信
 - **BucketDeployment**: `packages/web/build/` を S3 へ自動アップロード

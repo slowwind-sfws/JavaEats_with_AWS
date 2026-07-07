@@ -45,13 +45,12 @@ packages/cdk/
 | User Pool (`JavaEatsUserPool`) | `javaeats-user-pool` (セルフサインアップ、Username・Email 認証、RemovalPolicy: DESTROY) |
 | User Pool Client (`JavaEatsUserPoolClient`) | `JavaEatsUserPoolClient` (SRP認証対応) |
 
-### Lambda（item-service）
+### Lambda関数（item-service / order-service）
 
 | プロパティ | 値 |
 |---|---|
 | ランタイム | Java 21 |
 | ハンドラ | `org.springframework.cloud.function.adapter.aws.FunctionInvoker` |
-| JAR | `../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar` |
 | タイムアウト | 30秒 |
 | メモリ | 512MB |
 | SnapStart | **無効化中**（初期化失敗の切り分けのため。安定後に再有効化予定） |
@@ -60,11 +59,20 @@ packages/cdk/
 | Subnet | `subnet-0a5539df09716c9f7`、`subnet-0a53ffdb75738bbb4` |
 | SG | `LambdaSg` |
 
-Lambda 環境変数：
+#### デプロイ対象の Spring Cloud Function 一覧
+
+| 関数論理ID | 定義名 (`SPRING_CLOUD_FUNCTION_DEFINITION`) | 所属サービス / JAR パス |
+|---|---|---|
+| `listItemsFunc` | `listItems` | item-service / `../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar` |
+| `getItemFunc` | `getItem` | item-service / `../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar` |
+| `listCategoriesFunc` | `listCategories` | item-service / `../api/item-service/target/item-service-0.0.1-SNAPSHOT.jar` |
+| `createOrderFunc` | `createOrder` | order-service / `../api/order-service/target/order-service-0.0.1-SNAPSHOT.jar` |
+
+Lambda 共通環境変数：
 
 | 変数名 | 値 |
 |---|---|
-| `SPRING_CLOUD_FUNCTION_DEFINITION` | `listItems` |
+| `SPRING_CLOUD_FUNCTION_DEFINITION` | 各定義名（上記参照） |
 | `SPRING_DATASOURCE_URL` | `jdbc:mysql://shared.cluster-c1ygeeuiuvel.ap-northeast-1.rds.amazonaws.com:3306/db` |
 | `SPRING_DATASOURCE_USERNAME` | `dbadmin` |
 | `SPRING_DATASOURCE_PASSWORD` | （設定済み・実験段階） |
@@ -80,9 +88,22 @@ Lambda 環境変数：
 | CloudWatch ログ | 有効 |
 | オーソライザー | `JavaEatsAuthorizer` (Cognito User Pool 連動) |
 
-| メソッド | パス | 認証 | Lambda |
+#### ルーティング・マッピング
+
+| メソッド | パス | 認証 | ターゲット Lambda |
 |---|---|---|---|
 | GET | `/item/list` | **Cognito 必須** | itemListFunction（`listItems`） |
+| GET | `/item/category` | **Cognito 必須** | itemCategoryFunction（`listCategories`） |
+| GET | `/item/{id}` | **Cognito 必須** | itemGetFunction（`getItem`） |
+| POST | `/order` | **Cognito 必須** | createOrderFunction（`createOrder`） |
+
+#### CDK スタックのリファクタリング（保守性・拡張性の向上）
+
+CDKスタックの肥大化・冗長化を防ぐため、以下の2つの工夫を取り入れています。
+1. **`createSpringLambda` ヘルパーによるカプセル化**:
+   - Lambda関数の作成と Alias (`live`) の登録、環境変数の設定をヘルパー化。定義名と対象 JAR のパスを渡すだけで論理 ID が一貫して自動生成されるように設計。
+2. **`routes` 配列による宣言的API定義**:
+   - リソースの作成（`getOrCreateResource` パス解決ヘルパー）と Cognito 認証付きメソッドの登録をループ処理に集約。新規 API は `routes` 配列に 1 行追加するだけでデプロイ可能です。
 
 ### S3 バケット
 
