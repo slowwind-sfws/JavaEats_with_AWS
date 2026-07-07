@@ -6,14 +6,15 @@ DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
 
 -- ==========================================
--- 1. ユーザーテーブル (ランクはJavaで計算するため数値のみ保持)
+-- 1. ユーザーテーブル (認証情報はCognitoで管理するため、DBにはプロフィール情報のみ保持)
 -- ==========================================
 CREATE TABLE users (
     id VARCHAR(50) PRIMARY KEY,   -- Cognito sub をそのまま格納
     user_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    rank_code INT NOT NULL -- 1:一般, 2:プレミアム, 3:VIP
+    rank_code INT NOT NULL,       -- 1:一般, 2:プレミアム, 3:VIP
+    zip_code VARCHAR(10),
+    address VARCHAR(200),
+    phone_number VARCHAR(20)
 );
 
 -- ==========================================

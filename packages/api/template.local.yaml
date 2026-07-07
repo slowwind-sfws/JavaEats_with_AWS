@@ -26,7 +26,7 @@ Resources:
       StageName: local
       Cors:
         AllowOrigin: "'http://localhost:3000'"
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,PUT,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
 
   ItemListFunction:
@@ -115,3 +115,48 @@ Resources:
             RestApiId: !Ref MyAppApi
             Path: /order/{id}
             Method: get
+
+  UserRegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: user-service/target/user-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: registerUser
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /user/register
+            Method: post
+
+  UserGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: user-service/target/user-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: getUser
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /user/{id}
+            Method: get
+
+  UserUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: user-service/target/user-service-0.0.1-SNAPSHOT.jar
+      Environment:
+        Variables:
+          SPRING_CLOUD_FUNCTION_DEFINITION: updateUser
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyAppApi
+            Path: /user/{id}
+            Method: put

@@ -31,7 +31,7 @@ packages/api/
 │   └── src/.../order/
 │       ├── service/OrderService.java  # ビジネスロジック（金額計算・主キー補完）
 │       └── ...
-└── user-service/                    # ユーザー・認証（未実装）
+└── user-service/                    # ユーザープロフィール・認証（実装済み）
 ```
 
 ## セットアップ
@@ -75,12 +75,13 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 | GET | `/order/{id}` | `getOrder` | 注文サマリー取得（`{id}` は実態として userId＝Cognito sub） |
 | POST | `/order` | `createOrder` | 注文作成 |
 
-### user-service（未実装）
+### user-service（実装済み）
 
 | メソッド | パス | Bean 名 | 説明 |
 |---|---|---|---|
-| POST | `/user/register` | `registerUser` | ユーザー登録 |
-| GET | `/user/{id}` | `getUser` | ユーザー情報取得 |
+| POST | `/user/register` | `registerUser` | ユーザー登録（初回ログイン時のべき等UPSERT処理） |
+| GET | `/user/{id}` | `getUser` | ユーザープロフィール情報取得 |
+| PUT | `/user/{id}` | `updateUser` | ユーザープロフィール情報更新 |
 
 ## サービス構成
 
@@ -89,7 +90,7 @@ sam local start-api -t template.local.yaml --docker-network sam-network
 | shared | `jp.co.ambl.javaeats.shared` | 実装済み（Category entity） |
 | item-service | `jp.co.ambl.javaeats.item` | 実装済み |
 | order-service | `jp.co.ambl.javaeats.order` | 実装済み（POST /order 注文作成・動作確認済み） |
-| user-service | `jp.co.ambl.javaeats.user` | 未実装 |
+| user-service | `jp.co.ambl.javaeats.user` | 実装済み（登録、取得、更新） |
 
 ## 設計上の注意点
 

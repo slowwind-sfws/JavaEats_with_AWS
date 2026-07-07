@@ -42,20 +42,23 @@ packages/api/
 │       ├── function/ItemFunctions.java   # listItems, getItem, listCategories
 │       ├── dto/                          # ItemSearchRequest, ItemResponse
 │       └── mapper/                       # ItemMapper, CategoryMapper
-└── order-service/                   # 注文管理（スケルトン実装済み）
+├── order-service/                   # 注文管理（実装済み）
+│   ├── pom.xml
+│   └── src/main/java/jp/co/ambl/javaeats/order/
+│       ├── OrderServiceApplication.java
+│       ├── function/OrderFunctions.java  # listOrders, getOrder, createOrder
+│       ├── service/OrderService.java     # ビジネスロジック（仮金額計算、日時・主キー補完）
+│       ├── dto/                          # OrderRequest, OrderResponse
+│       └── mapper/                       # OrderMapper
+└── user-service/                    # ユーザープロフィール・認証（実装済み）
     ├── pom.xml
-    └── src/main/java/jp/co/ambl/javaeats/order/
-        ├── OrderServiceApplication.java
-        ├── function/OrderFunctions.java  # listOrders, getOrder, createOrder
-        ├── service/OrderService.java     # ビジネスロジック（仮金額計算、日時・主キー補完）
-        ├── dto/                          # OrderRequest, OrderResponse
-        └── mapper/                       # OrderMapper
-```
-
-### 今後追加予定
-
-```
-└── user-service/                    # ユーザー・認証（未実装）
+    └── src/main/java/jp/co/ambl/javaeats/user/
+        ├── UserServiceApplication.java
+        ├── function/UserFunctions.java   # registerUser, getUser, updateUser
+        ├── service/UserService.java       # プロフィール登録（UPSERTべき等処理）、取得、更新
+        ├── dto/                          # UserRegisterRequest, UserUpdateRequest, UserResponse
+        ├── entity/                       # User（ドメインモデル）
+        └── mapper/                       # UserMapper
 ```
 
 ## Lambda 関数と API エンドポイント
@@ -79,12 +82,13 @@ packages/api/
 | `getOrder` | GET | `/order/{id}` | 注文サマリー取得（`{id}` は実態として userId＝Cognito sub） |
 | `createOrder` | POST | `/order` | 注文作成 |
 
-### user-service（未実装）
+### user-service（実装済み）
 
 | Bean 名 | HTTP | パス | 説明 |
 |---|---|---|---|
-| `registerUser` | POST | `/user/register` | ユーザー登録 |
-| `getUser` | GET | `/user/{id}` | ユーザー情報取得 |
+| `registerUser` | POST | `/user/register` | ユーザー登録（初回ログイン時のUPSERTべき等処理） |
+| `getUser` | GET | `/user/{id}` | ユーザープロフィール情報取得 |
+| `updateUser` | PUT | `/user/{id}` | ユーザープロフィール情報更新（名前、郵便番号、住所、電話番号） |
 
 Lambda ハンドラ（全サービス共通）: `org.springframework.cloud.function.adapter.aws.FunctionInvoker`  
 呼び出したい Bean は環境変数 `SPRING_CLOUD_FUNCTION_DEFINITION` で指定する。
@@ -111,7 +115,8 @@ cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-n
 # → POST http://127.0.0.1:8080/order
 
 # テスト実行
-cd packages/api && ./mvnw test
+# ※ ローカルの MySQL コンテナとの接続を確立して実行する場合（Transactional による自動ロールバックが適用され、初期データは安全に保護されます）
+cd packages/api && SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/db SPRING_DATASOURCE_USERNAME=user SPRING_DATASOURCE_PASSWORD=password ./mvnw test
 ```
 
 ## `template.local.yaml` の位置づけ
