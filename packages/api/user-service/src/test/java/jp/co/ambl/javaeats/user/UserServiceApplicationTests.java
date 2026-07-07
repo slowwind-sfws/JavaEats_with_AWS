@@ -55,7 +55,7 @@ class UserServiceApplicationTests {
     }
 
     @Test
-    void testRegisterUser_Duplicate_Id_Upsert() {
+    void testRegisterUser_Duplicate_Id_Ignored() {
         // 準備：最初に1件登録しておく
         String testUserId = "junit-test-sub-102";
         UserRegisterRequest request1 = UserRegisterRequest.builder()
@@ -63,24 +63,24 @@ class UserServiceApplicationTests {
                 .build();
         userService.registerUser(testUserId, request1);
 
-        // 実行：同一IDで、別の名前で再度登録リクエスト (UPSERT)
+        // 実行：同一IDで再度登録リクエスト（INSERT IGNORE により無視される）
         UserRegisterRequest request2 = UserRegisterRequest.builder()
                 .userName("テスト太郎(変更後)")
                 .build();
         UserResponse result = userService.registerUser(testUserId, request2);
 
-        // 検証：重複エラーにならず、名前が更新されること（べき等性の確認）
+        // 検証：重複エラーにならず、初回登録の名前が保持されること
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(testUserId);
-        assertThat(result.getUserName()).isEqualTo("テスト太郎(変更後)");
+        assertThat(result.getUserName()).isEqualTo("テスト太郎");
 
         User dbUser = userMapper.getUserById(testUserId);
         assertThat(dbUser).isNotNull();
-        assertThat(dbUser.getUserName()).isEqualTo("テスト太郎(変更後)");
+        assertThat(dbUser.getUserName()).isEqualTo("テスト太郎");
     }
 
     @Test
-    void testRegisterUser_Upsert_PreservesExistingProfile() {
+    void testRegisterUser_DuplicateIgnored_PreservesExistingProfile() {
         // 準備：ユーザーを登録し、プロフィールを更新しておく
         String testUserId = "junit-test-sub-104";
         userService.registerUser(testUserId, UserRegisterRequest.builder().userName("テスト次郎").build());
@@ -91,11 +91,12 @@ class UserServiceApplicationTests {
                 .phoneNumber("080-1111-2222")
                 .build());
 
-        // 実行：同一IDで再度 registerUser（UPSERT）
+        // 実行：同一IDで再度 registerUser（INSERT IGNORE により全フィールド無視）
         userService.registerUser(testUserId, UserRegisterRequest.builder().userName("テスト次郎(再登録)").build());
 
-        // 検証：zipCode・address・phoneNumber は ON DUPLICATE KEY UPDATE の対象外のため保持される
+        // 検証：既存レコードが一切書き換えられないこと
         User dbUser = userMapper.getUserById(testUserId);
+        assertThat(dbUser.getUserName()).isEqualTo("テスト次郎");
         assertThat(dbUser.getZipCode()).isEqualTo("150-0001");
         assertThat(dbUser.getAddress()).isEqualTo("東京都渋谷区神南1-1");
         assertThat(dbUser.getPhoneNumber()).isEqualTo("080-1111-2222");

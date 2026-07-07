@@ -28,14 +28,16 @@ packages/web/
 ├── src/
 │   ├── index.tsx                    # React エントリポイント（StrictMode なし）
 │   ├── index.css                    # グローバルスタイル（参照リポジトリのCSSをトレース）
-│   ├── App.tsx                      # Amplify.configure + <Authenticator> でラップ
+│   ├── App.tsx                      # Amplify.configure + <Authenticator> でラップ、初回ログイン時の自動ユーザー登録
 │   ├── route.tsx                    # ルート定義
 │   ├── setupProxy.js                # CRA プロキシ設定（Cognito CORS 回避）
 │   └── components/
+│       ├── Header.tsx               # 共通ヘッダー（showMyPage props でマイページリンクを制御）
 │       ├── DefaultPage.tsx          # 商品一覧ページ（/ にマッピング）
 │       ├── ItemDetailPage.tsx       # 商品詳細・注文入力ページ
 │       ├── OrderConfirmPage.tsx     # 注文確認ページ
-│       └── OrderCompletePage.tsx    # 注文完了ページ
+│       ├── OrderCompletePage.tsx    # 注文完了ページ
+│       └── UserProfilePage.tsx      # マイページ（プロフィール編集・注文履歴・退会）
 └── package.json
 ```
 
@@ -43,12 +45,35 @@ packages/web/
 
 | パス | コンポーネント | 状態 |
 |---|---|---|
-| `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・ログアウトボタン） |
-| `/item/:id` | `ItemDetailPage` | 実装済み（商品詳細表示、数量・住所入力、金額計算、確認画面へ遷移） |
-| `/order/confirm` | `OrderConfirmPage` | 実装済み（注文内容確認、POST /order 呼び出し、修正へ戻る） |
-| `/order/complete` | `OrderCompletePage` | 実装済み（注文完了表示、一覧へ戻る） |
+| `/` | `DefaultPage` | 実装済み（商品一覧・検索・カテゴリフィルター・マイページ・ログアウト） |
+| `/item/:id` | `ItemDetailPage` | 実装済み（商品詳細、数量・住所入力、プロフィールから住所自動補完、マイページ） |
+| `/order/confirm` | `OrderConfirmPage` | 実装済み（注文内容確認、POST /order 呼び出し、修正へ戻る、マイページ） |
+| `/order/complete` | `OrderCompletePage` | 実装済み（注文完了表示、一覧へ戻る、マイページ） |
+| `/user/profile` | `UserProfilePage` | 実装済み（プロフィール表示・編集、注文履歴一覧、退会） |
 | ログイン | Amplify `<Authenticator>` | 未認証時に自動表示（独自 `LoginPage` は削除済み） |
-| `/user/...` | — | 未実装 |
+
+## 共通ヘッダー（Header.tsx）
+
+全ページで `<Header>` コンポーネントを使用する。`showMyPage` props（デフォルト `false`）でマイページリンクの表示を制御する。
+
+```tsx
+// マイページリンクあり（DefaultPage / ItemDetailPage / OrderConfirmPage / OrderCompletePage）
+<Header showMyPage />
+
+// マイページリンクなし（UserProfilePage — 自分自身のページのため不要）
+<Header />
+```
+
+`useAuthenticator()` による `signOut` は `Header` 内に集約しており、各ページでは直接呼ばない。
+
+## 初回ログイン後の自動ユーザー登録
+
+`App.tsx` の `MainApp` コンポーネントが認証成功後に `POST /user/register` を呼び出す。  
+バックエンドは `INSERT IGNORE` で実装されており、既存ユーザーのレコードは上書きされない。
+
+```
+認証成功 → fetchAuthSession() で sub・idToken 取得 → POST /user/register（べき等）
+```
 
 ## 認証フロー（Cognito + Amplify UI）
 
@@ -103,6 +128,11 @@ aws --endpoint-url=http://localhost:4566 cognito-idp admin-set-user-password \
 | `GET /item/list?keyword=xxx` | キーワード検索 |
 | `GET /item/list?categoryId=n` | カテゴリフィルター |
 | `GET /item/{id}` | 商品1件取得（詳細表示時） |
+| `POST /user/register` | 初回ログイン時の自動ユーザー登録（べき等） |
+| `GET /user/{id}` | プロフィール取得（マイページ・住所自動補完） |
+| `PUT /user/{id}` | プロフィール更新 |
+| `GET /order/list?userId={sub}` | 注文履歴取得（マイページ） |
+| `POST /order` | 注文作成 |
 
 本番環境では環境変数 `REACT_APP_API_BASE` で API のベース URL を指定する。
 
@@ -132,6 +162,7 @@ npm test
 - **VSCode TypeScript Language Server の設定。** モノレポ構成のため `.vscode/settings.json` に `"typescript.tsdk": "packages/web/node_modules/typescript/lib"` を設定済み。
 - **Cognito CORS 回避。** ブラウザから `localhost:4566` に直接リクエストすると CORS エラーになる。`setupProxy.js` で `/cognito` を Floci にプロキシすることで回避している。開発サーバー再起動時に `setupProxy.js` が自動で読み込まれる。
 - **Amplify の認証状態管理。** `<Authenticator>` が認証状態を管理するため、独自の `AuthContext` / `AuthService` は不要。`useAuthenticator()` でサインアウト、`fetchAuthSession()` でトークン取得を行う。
+- **SAM local での user/register の sub 取得。** SAM local には API Gateway の Cognito オーソライザーが存在しないため `claims` が null になる。バックエンドの `UserFunctions.registerUser()` はこれを考慮し、`claims` が null の場合はリクエストボディの `id` にフォールバックする。本番では Cognito オーソライザーが `claims.sub` を付与するためボディの `id` は無視される。
 
 ## 画像ファイルの扱い
 

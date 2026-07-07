@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuthenticator } from '@aws-amplify/ui-react';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import Header from './Header';
 
 type ItemResponse = {
   id: number;
@@ -15,7 +15,6 @@ type ItemResponse = {
 function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { signOut } = useAuthenticator();
 
   const [item, setItem] = useState<ItemResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +36,7 @@ function ItemDetailPage() {
   };
 
   useEffect(() => {
-    const fetchItemDetail = async () => {
+    const fetchItemDetailAndProfile = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -51,6 +50,24 @@ function ItemDetailPage() {
         }
         const data: ItemResponse = await res.json();
         setItem(data);
+
+        // ユーザープロフィール情報から住所を自動補完
+        try {
+          const session = await fetchAuthSession();
+          const userId = session.tokens?.idToken?.payload?.sub as string;
+          if (userId) {
+            const profileRes = await fetch(`${apiBase}/user/${userId}`, { headers });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              if (profileData && profileData.address) {
+                setAddress(profileData.address);
+              }
+            }
+          }
+        } catch (profileError) {
+          console.warn('Failed to load profile for address auto-completion:', profileError);
+        }
+
       } catch (e: any) {
         console.error('Failed to fetch item detail:', e);
         setError(e.message || 'データの取得に失敗しました');
@@ -60,7 +77,7 @@ function ItemDetailPage() {
     };
 
     if (id) {
-      fetchItemDetail();
+      fetchItemDetailAndProfile();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, apiBase]);
@@ -112,12 +129,7 @@ function ItemDetailPage() {
 
   return (
     <>
-      <header className="site-header">
-        <div className="header-container">
-          <h1 className="site-title"><a href="/">🍔 JavaEats</a></h1>
-          <button className="btn-logout" onClick={signOut}>ログアウト</button>
-        </div>
-      </header>
+      <Header showMyPage />
 
       <div className="container">
         {loading && <div>読み込み中...</div>}

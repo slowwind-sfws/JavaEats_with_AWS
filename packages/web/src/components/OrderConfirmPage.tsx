@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthenticator } from '@aws-amplify/ui-react';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import Header from './Header';
 
 type OrderState = {
   userId: string;
@@ -20,7 +20,6 @@ type OrderState = {
 function OrderConfirmPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuthenticator();
   const state = location.state as OrderState | null;
 
   const [submitting, setSubmitting] = useState(false);
@@ -84,12 +83,7 @@ function OrderConfirmPage() {
 
   return (
     <>
-      <header className="site-header">
-        <div className="header-container">
-          <h1 className="site-title"><a href="/">🍔 JavaEats</a></h1>
-          <button className="btn-logout" onClick={signOut}>ログアウト</button>
-        </div>
-      </header>
+      <Header showMyPage />
 
       <div className="container">
         <div className="form-card">

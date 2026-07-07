@@ -28,10 +28,26 @@ public class UserFunctions {
     public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> registerUser() {
         return request -> {
             try {
-                @SuppressWarnings("unchecked")
-                Map<String, String> claims = (Map<String, String>) request.getRequestContext().getAuthorizer().get("claims");
-                String userId = claims.get("sub");
                 UserRegisterRequest registerRequest = objectMapper.readValue(request.getBody(), UserRegisterRequest.class);
+
+                // 本番: Cognito オーソライザーの claims から sub を取得（改ざん不可）
+                // SAM local: オーソライザーなしのためボディの id にフォールバック
+                String userId = null;
+                var authorizer = request.getRequestContext().getAuthorizer();
+                if (authorizer != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> claims = (Map<String, String>) authorizer.get("claims");
+                    if (claims != null) {
+                        userId = claims.get("sub");
+                    }
+                }
+                if (userId == null) {
+                    userId = registerRequest.getId();
+                }
+                if (userId == null || userId.isBlank()) {
+                    return ResponseUtility.error(400, "User ID is required");
+                }
+
                 UserResponse response = userService.registerUser(userId, registerRequest);
                 return ResponseUtility.ok(objectMapper.writeValueAsString(response));
             } catch (Exception e) {

@@ -3,6 +3,8 @@ import { Authenticator, View } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { RouterProvider } from 'react-router-dom';
 import routesBasic from './route';
+import { useEffect, useRef } from 'react';
+import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
 
 const winEnv = (window as any)._env_ || {};
 const userPoolId = winEnv.REACT_APP_COGNITO_USER_POOL_ID || process.env.REACT_APP_COGNITO_USER_POOL_ID;
@@ -70,10 +72,53 @@ const formFields = {
   },
 };
 
+function MainApp() {
+  const registeredRef = useRef(false);
+
+  useEffect(() => {
+    const registerUserIfNeeded = async () => {
+      if (registeredRef.current) return;
+      registeredRef.current = true;
+
+      try {
+        const session = await fetchAuthSession();
+        const idToken = session.tokens?.idToken?.toString();
+        const user = await getCurrentUser();
+        const apiBase = process.env.REACT_APP_API_BASE || '';
+
+        if (!idToken || !user) return;
+
+        // AWS Cognito から ログイン中の user_name (または email の @ より前など) をフォールバック用に取得
+        const userName = user.signInDetails?.loginId?.split('@')[0] || user.username || '新規ユーザー';
+
+        // べき等な register API を呼び出す
+        await fetch(`${apiBase}/user/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            id: user.userId, // Cognito sub
+            userName: userName
+          })
+        });
+        console.log('User registered/synced successfully with DB.');
+      } catch (e) {
+        console.error('Failed to auto register user to DB:', e);
+      }
+    };
+
+    registerUserIfNeeded();
+  }, []);
+
+  return <RouterProvider router={routesBasic} />;
+}
+
 function App() {
   return (
     <Authenticator components={components} formFields={formFields} hideSignUp={!!process.env.REACT_APP_COGNITO_ENDPOINT}>
-      <RouterProvider router={routesBasic} />
+      <MainApp />
     </Authenticator>
   );
 }

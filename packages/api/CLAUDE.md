@@ -21,8 +21,6 @@ Spring Boot + Spring Cloud Function で Lambda 関数を実装し、API Gateway 
 
 ## ディレクトリ構成
 
-### 現在の構成
-
 ```
 packages/api/
 ├── pom.xml                          # 親 POM（共通依存・バージョン管理）
@@ -55,7 +53,7 @@ packages/api/
     └── src/main/java/jp/co/ambl/javaeats/user/
         ├── UserServiceApplication.java
         ├── function/UserFunctions.java   # registerUser, getUser, updateUser
-        ├── service/UserService.java       # プロフィール登録（UPSERTべき等処理）、取得、更新
+        ├── service/UserService.java       # プロフィール登録（INSERT IGNOREべき等処理）、取得、更新
         ├── dto/                          # UserRegisterRequest, UserUpdateRequest, UserResponse
         ├── entity/                       # User（ドメインモデル）
         └── mapper/                       # UserMapper
@@ -86,7 +84,7 @@ packages/api/
 
 | Bean 名 | HTTP | パス | 説明 |
 |---|---|---|---|
-| `registerUser` | POST | `/user/register` | ユーザー登録（初回ログイン時のUPSERTべき等処理） |
+| `registerUser` | POST | `/user/register` | ユーザー登録（初回ログイン時の INSERT IGNORE べき等処理） |
 | `getUser` | GET | `/user/{id}` | ユーザープロフィール情報取得 |
 | `updateUser` | PUT | `/user/{id}` | ユーザープロフィール情報更新（名前、郵便番号、住所、電話番号） |
 
@@ -113,6 +111,9 @@ cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-n
 # → http://127.0.0.1:8080/order/list?userId=1
 # → http://127.0.0.1:8080/order/{id}
 # → POST http://127.0.0.1:8080/order
+# → POST http://127.0.0.1:8080/user/register
+# → http://127.0.0.1:8080/user/{id}
+# → PUT  http://127.0.0.1:8080/user/{id}
 
 # テスト実行
 # ※ ローカルの MySQL コンテナとの接続を確立して実行する場合（Transactional による自動ロールバックが適用され、初期データは安全に保護されます）
@@ -146,19 +147,35 @@ cd packages/api && SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/db SPRING_D
 | `items` | 商品（shop_id, price, image_path） | item-service |
 | `orders` | 注文（user_id は Cognito sub の VARCHAR(50)、item_id, quantity, total_price 等） | order-service |
 
-`schema.sql` / `data.sql` は `spring.sql.init.mode=always` でアプリ起動時に毎回実行される（ローカル・本番ともに）。
+`schema.sql` / `data.sql` は `item-service` のみに配置。`sql.init.mode` は全サービスで `never`（デフォルト）とし、起動時の自動 DROP/CREATE を行わない。
 
-> **注意（ローカル開発）:** `schema.sql` は `DROP TABLE IF EXISTS` から始まるため、item-service の Lambda がコールドスタートするたびに全テーブルがリセットされる。注文データが消えた場合は item-service へのリクエスト（商品一覧・商品詳細の取得など）によるコールドスタートが原因。本番環境では Lambda が常駐するため問題は発生しないが、ローカルでデータを維持したい場合は `schema.sql` の `DROP TABLE` を `CREATE TABLE IF NOT EXISTS` に変更し、`data.sql` を `INSERT IGNORE` に書き換えること。
+> **初回セットアップ・DB リセット時の手動実行が必要:**
+> ```bash
+> docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+>   < packages/api/item-service/src/main/resources/schema.sql
+> docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+>   < packages/api/item-service/src/main/resources/data.sql
+> ```
 
 ## application.properties の環境変数対応
 
 DB 接続設定は環境変数フォールバック形式に変更済み。ローカルでは環境変数未設定時に Docker の MySQL へ接続する。
 
-| プロパティ | item-service デフォルト | order-service デフォルト | 本番（Lambda 環境変数で上書き） |
-|---|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/db` | 同左 | Aurora エンドポイント |
-| `SPRING_DATASOURCE_USERNAME` | `user` | 同左 | `dbadmin` |
-| `SPRING_DATASOURCE_PASSWORD` | `password` | 同左 | （CDK で設定） |
-| `SPRING_SQL_INIT_MODE` | `always` | **`never`** | （サービスごとに設定） |
+| プロパティ | item-service デフォルト | order-service デフォルト | user-service デフォルト | 本番（Lambda 環境変数で上書き） |
+|---|---|---|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/db` | 同左 | 同左 | Aurora エンドポイント |
+| `SPRING_DATASOURCE_USERNAME` | `user` | 同左 | 同左 | `dbadmin` |
+| `SPRING_DATASOURCE_PASSWORD` | `password` | 同左 | 同左 | （CDK で設定） |
+| `SPRING_SQL_INIT_MODE` | **`never`** | **`never`** | **`never`** | （サービスごとに設定） |
 
-`order-service` の `sql.init.mode` を `never` にしている理由: スキーマ定義（`schema.sql`）とテストデータ（`data.sql`）は `item-service` にのみ置いており、`order-service` が起動時に DROP/CREATE を実行すると既存データが消えるため。
+全サービスの `sql.init.mode` を `never` にしている理由: スキーマ定義（`schema.sql`）とテストデータ（`data.sql`）は `item-service` にのみ置いており、他サービスが起動時に DROP/CREATE を実行すると既存データが消えるため。テスト実行時のみ環境変数で `always` に上書きする。
+
+## SAM local での Cognito sub 取得（user-service 固有）
+
+SAM local には API Gateway の Cognito オーソライザーが存在しないため、`requestContext.authorizer` が null になる。  
+`UserFunctions.registerUser()` は以下の優先順位で userId を決定する：
+
+1. `requestContext.authorizer.claims.sub`（本番：Cognito オーソライザーが付与）
+2. リクエストボディの `id` フィールド（SAM local フォールバック：フロントエンドが Cognito sub を送信）
+
+本番では Cognito オーソライザーが必ず `claims.sub` を付与するため、ボディの `id` は無視される。

@@ -11,8 +11,9 @@ Java 21 + Spring Boot 4.1.0 を AWS Lambda + API Gateway で動かし、マイ�
 | バックエンドフレームワーク | Spring Boot 4.1.0 |
 | フロントエンド言語 | TypeScript 4.9.5 |
 | フロントエンドフレームワーク | React 19 |
+| 認証 | AWS Cognito + Amplify v6 |
 | デプロイ先 | AWS Lambda + API Gateway（バックエンド）/ S3 + CloudFront（フロントエンド）/ Aurora Serverless V2（DB） |
-| ローカル開発 | AWS SAM CLI（バックエンド）/ React 開発サーバー（フロントエンド） |
+| ローカル開発 | AWS SAM CLI（バックエンド）/ React 開発サーバー（フロントエンド）/ Floci（Cognito エミュレータ） |
 | 本番デプロイ | AWS CDK（`packages/cdk/`） |
 | AI アシスタント | Claude Code (Amazon Bedrock, ap-northeast-1) |
 
@@ -23,6 +24,8 @@ JavaEats_with_AWS/
 ├── .devcontainer/       # Dev Container 設定（WSL2 + Docker-in-Docker 対応）
 ├── .aws/                # AWS 認証情報バックアップ（コンテナ再作成用）
 ├── .claude/             # Claude Code 設定バックアップ（コンテナ再作成用）
+├── docs/                # 設計ドキュメント
+│   └── user-feature-planning.md
 ├── localstack/          # ローカル開発インフラ（MySQL + Floci）
 │   └── docker-compose.yml
 └── packages/
@@ -69,26 +72,45 @@ cp -r /home/vscode/.claude ./
 
 ## ローカル開発の起動手順
 
+### 1. インフラ起動
+
 ```bash
-# 1. ローカルインフラ（MySQL + Floci）起動
 cd localstack && docker compose up -d
+```
 
-# 2. バックエンド ビルド
-cd packages/api && ./mvnw package -DskipTests
+### 2. DB 初期化（初回・リセット時のみ）
 
-# 3. ローカル API サーバー起動（port 8080）
-cd packages/api && sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
-# item-service
-# → http://127.0.0.1:8080/item/list
-# → http://127.0.0.1:8080/item/{id}
-# → http://127.0.0.1:8080/item/category
-# order-service（実装済み）
-# → http://127.0.0.1:8080/order/list?userId=<Cognito sub>
-# → http://127.0.0.1:8080/order/<Cognito sub>
-# → POST http://127.0.0.1:8080/order
+> **重要:** `item-service` の `sql.init.mode` は `never` に設定されています。  
+> Lambda 起動時にテーブルが自動作成されないため、初回セットアップ時と DB をリセットしたい場合は以下を手動実行してください。
 
-# 4. フロントエンド開発サーバー起動（port 3000、別ターミナル）
+```bash
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/schema.sql
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/data.sql
+```
+
+### 3. バックエンド起動
+
+```bash
+cd packages/api
+./mvnw package -DskipTests
+sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+```
+
+### 4. フロントエンド起動（別ターミナル）
+
+```bash
 cd packages/web && npm start
 # → http://localhost:3000
-# → 未認証時は自動的に Amplify UI のサインイン画面が表示される。サインインに成功すると、商品一覧画面が表示され、各商品から商品詳細画面へと遷移可能。
+```
+
+未認証時は Amplify UI のサインイン画面が自動表示されます。  
+サインイン成功後、`POST /user/register` が自動呼び出されて DB にユーザーレコードが登録されます（`INSERT IGNORE` により既存ユーザーは上書きされません）。
+
+## 本番デプロイ
+
+```bash
+# バックエンド・フロントエンドをビルド後に実行
+cd packages/cdk && npx cdk deploy
 ```

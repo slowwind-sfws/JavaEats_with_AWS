@@ -11,7 +11,7 @@ JavaEats のバックエンド API。Spring Boot + Spring Cloud Function で実�
 | フレームワーク | Spring Boot 4.1.0 |
 | Lambda アダプタ | Spring Cloud Function 2025.1.2 |
 | ORM | MyBatis 4.0.1（XML マッピング） |
-| DB | MySQL |
+| DB | MySQL（ローカル: Docker、本番: Aurora Serverless V2） |
 | ビルド | Maven マルチモジュール（maven-shade-plugin で fat JAR） |
 | ローカル開発 | AWS SAM CLI |
 
@@ -26,21 +26,28 @@ packages/api/
 │       ├── entity/Category.java
 │       └── util/ResponseUtility.java  # 共通レスポンス
 ├── item-service/                    # 商品・カテゴリ（実装済み）
-│   └── target/item-service-0.0.1-SNAPSHOT.jar
+│   └── src/main/resources/
+│       ├── schema.sql               # 全テーブルの定義（DROP → CREATE）
+│       └── data.sql                 # 初期データ
 ├── order-service/                   # 注文管理（実装済み）
-│   └── src/.../order/
-│       ├── service/OrderService.java  # ビジネスロジック（金額計算・主キー補完）
-│       └── ...
-└── user-service/                    # ユーザープロフィール・認証（実装済み）
+└── user-service/                    # ユーザープロフィール（実装済み）
 ```
 
-## セットアップ
+## セットアップ（初回・DB リセット後）
 
-ローカル MySQL が必要です。`localstack/docker-compose.yml` で起動できます。
+> **重要:** `item-service` の `sql.init.mode` は `never` に設定されています。  
+> ローカル MySQL にテーブルとデータが存在しない状態では API が動作しません。  
+> 初回セットアップ時、または DB をリセットしたい場合は以下を手動実行してください。
 
 ```bash
-cd localstack
-docker compose up -d
+# ローカルインフラ（MySQL + Floci）起動
+cd localstack && docker compose up -d
+
+# スキーマと初期データを MySQL に流し込む（初回 or リセット時のみ）
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/schema.sql
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/data.sql
 ```
 
 ## ビルド・起動
@@ -52,60 +59,68 @@ cd packages/api
 ./mvnw package -DskipTests
 
 # ローカル API サーバー起動（--docker-network は MySQL コンテナとの通信に必須）
-sam local start-api -t template.local.yaml --docker-network sam-network
+sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
+```
+
+## テスト実行
+
+テストは `sql.init.mode=always` を環境変数で上書きして実行します（トランザクションにより自動ロールバックされ、初期データは保護されます）。
+
+```bash
+cd packages/api
+SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/db \
+SPRING_DATASOURCE_USERNAME=user \
+SPRING_DATASOURCE_PASSWORD=password \
+./mvnw test
 ```
 
 ## API エンドポイント
 
 ### item-service（実装済み）
 
-| メソッド | パス | Bean 名 | 説明 |
-|---|---|---|---|
-| GET | `/item/list` | `listItems` | 商品検索（`keyword`, `categoryId` クエリパラメータ） |
-| GET | `/item/{id}` | `getItem` | 商品1件取得 |
-| GET | `/item/category` | `listCategories` | カテゴリ一覧取得 |
-
-フロントエンドからは `Authorization: Bearer <Cognito ID Token>` ヘッダーが付与される。本番環境では、API Gateway レベルで Cognito ユーザープールオーソライザー（`JavaEatsAuthorizer`）が有効化されており、JWT の有効性が自動的に検証される。バックエンド Lambda は検証済みの安全なリクエストのみを受け取る。
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/item/list` | 商品検索（`keyword`, `categoryId` クエリパラメータ） |
+| GET | `/item/{id}` | 商品1件取得 |
+| GET | `/item/category` | カテゴリ一覧取得 |
 
 ### order-service（実装済み）
 
-| メソッド | パス | Bean 名 | 説明 |
-|---|---|---|---|
-| GET | `/order/list` | `listOrders` | 注文一覧取得（`userId` クエリパラメータ必須、Cognito sub を渡す） |
-| GET | `/order/{id}` | `getOrder` | 注文サマリー取得（`{id}` は実態として userId＝Cognito sub） |
-| POST | `/order` | `createOrder` | 注文作成 |
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/order/list` | 注文一覧取得（`userId` クエリパラメータ必須、Cognito sub を渡す） |
+| GET | `/order/{id}` | 注文サマリー取得（`{id}` は userId＝Cognito sub） |
+| POST | `/order` | 注文作成 |
 
 ### user-service（実装済み）
 
-| メソッド | パス | Bean 名 | 説明 |
-|---|---|---|---|
-| POST | `/user/register` | `registerUser` | ユーザー登録（初回ログイン時のべき等UPSERT処理） |
-| GET | `/user/{id}` | `getUser` | ユーザープロフィール情報取得 |
-| PUT | `/user/{id}` | `updateUser` | ユーザープロフィール情報更新 |
-
-## サービス構成
-
-| サービス | パッケージ | 状態 |
+| メソッド | パス | 説明 |
 |---|---|---|
-| shared | `jp.co.ambl.javaeats.shared` | 実装済み（Category entity） |
-| item-service | `jp.co.ambl.javaeats.item` | 実装済み |
-| order-service | `jp.co.ambl.javaeats.order` | 実装済み（POST /order 注文作成・動作確認済み） |
-| user-service | `jp.co.ambl.javaeats.user` | 実装済み（登録、取得、更新） |
+| POST | `/user/register` | ユーザー登録（`INSERT IGNORE` によるべき等処理） |
+| GET | `/user/{id}` | ユーザープロフィール情報取得 |
+| PUT | `/user/{id}` | ユーザープロフィール情報更新（名前・郵便番号・住所・電話番号） |
+
+全エンドポイントに `Authorization: Bearer <Cognito ID Token>` ヘッダーが必要。  
+本番環境では API Gateway の Cognito オーソライザーが JWT を自動検証する。
 
 ## 設計上の注意点
 
-### LocalDateTime を使わない理由
+### LocalDateTime を使わない
 
-`spring-boot-starter-web` を依存に含めないため、`ObjectMapper` は `new ObjectMapper()` で直接生成する。  
-この場合 `jackson-datatype-jsr310` の `JavaTimeModule` が自動登録されず、`LocalDateTime` は `[2026,7,5,10,30,0]` のような数値配列でシリアライズされてしまう。  
-依存を増やさないため、日時フィールドは **`String` 型**で定義する。MyBatis が MySQL の `DATETIME` 型を `String` に自動変換する。
+`spring-boot-starter-web` を依存に含めないため `ObjectMapper` は `new ObjectMapper()` で直接生成する。  
+`JavaTimeModule` が自動登録されず `LocalDateTime` が数値配列にシリアライズされるため、日時フィールドは **`String` 型**で定義する。
 
-### sql.init.mode の分担とローカルでのデータリセット問題
+### sql.init.mode の分担
 
-スキーマ（`schema.sql`）とテストデータ（`data.sql`）は `item-service` のみに置いている。  
-`order-service` で `sql.init.mode=always` にすると起動時に DROP/CREATE が走り既存データが失われるため、`order-service` の `application.properties` は `sql.init.mode=never` に設定している。
+スキーマ（`schema.sql`）と初期データ（`data.sql`）は `item-service` のみに配置。  
+`order-service`・`user-service` はいずれも `sql.init.mode=never`（デフォルト）とし、起動時の DROP/CREATE を防ぐ。  
+テスト実行時のみ環境変数で `sql.init.mode=always` を上書きする。
 
-**注意（ローカル開発）:** `schema.sql` は `DROP TABLE IF EXISTS` から始まるため、item-service の Lambda がコールドスタートするたびに全テーブルがリセットされる。商品一覧や商品詳細を取得するリクエストを送ると item-service がコールドスタートし、その時点で orders テーブルも含めた全データが初期化される。本番環境では Lambda が常駐するため問題は発生しない。ローカルでデータを維持したい場合は `schema.sql` の `DROP TABLE` を `CREATE TABLE IF NOT EXISTS` に変更し、`data.sql` を `INSERT IGNORE` に書き換えること。
+### SAM local での Cognito sub 取得
+
+SAM local には API Gateway の Cognito オーソライザーが存在しないため `requestContext.authorizer` が null になる。  
+`UserFunctions.registerUser()` は `claims` が null の場合にリクエストボディの `id` フィールドにフォールバックする。  
+本番では `claims.sub` が付与されるためボディの `id` は無視される。
 
 ## デプロイ
 

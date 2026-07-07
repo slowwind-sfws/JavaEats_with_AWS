@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthenticator } from '@aws-amplify/ui-react';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import Header from './Header';
 
 type ItemResponse = {
   id: number;
@@ -17,7 +17,6 @@ type Category = {
 };
 
 function DefaultPage() {
-  const { signOut } = useAuthenticator();
   const [items, setItems] = useState<ItemResponse[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -81,12 +80,7 @@ function DefaultPage() {
 
   return (
     <>
-      <header className="site-header">
-        <div className="header-container">
-          <h1 className="site-title"><a href="/">🍔 JavaEats</a></h1>
-          <button className="btn-logout" onClick={signOut}>ログアウト</button>
-        </div>
-      </header>
+      <Header showMyPage />
 
       <div className="container">
         <div className="search-box">

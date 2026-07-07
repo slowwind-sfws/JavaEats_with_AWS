@@ -4,10 +4,8 @@
 <mapper namespace="jp.co.ambl.javaeats.user.mapper.UserMapper">
 
     <insert id="insertUser">
-        INSERT INTO users (id, user_name, rank_code, zip_code, address, phone_number)
+        INSERT IGNORE INTO users (id, user_name, rank_code, zip_code, address, phone_number)
         VALUES (#{id}, #{userName}, #{rankCode}, #{zipCode}, #{address}, #{phoneNumber})
-        ON DUPLICATE KEY UPDATE
-            user_name = VALUES(user_name)
     </insert>
 
     <select id="getUserById" resultType="jp.co.ambl.javaeats.user.entity.User">

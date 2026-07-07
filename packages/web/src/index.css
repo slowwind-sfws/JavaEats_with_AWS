@@ -143,3 +143,54 @@ a { text-decoration: none; }
 }
 .link-back { display: block; text-align: center; margin-top: 15px; }
 .mb-20 { margin-bottom: 20px; }
+
+/* ==========================================
+   マイページ・登録画面用の追加レイアウト (Thymeleaf移植)
+   ========================================== */
+
+/* マイページ：メッセージ系 */
+.msg-success { color: green; font-weight: bold; margin-bottom: 15px; }
+.msg-error { color: red; font-weight: bold; margin-bottom: 15px; }
+
+/* マイページ：カードの拡張 */
+.card-full { max-width: 100% !important; margin-top: 30px; }
+.card-danger {
+    max-width: 100% !important; margin-top: 30px;
+    border: 2px solid #dc3545; padding: 20px; border-radius: 8px;
+    background-color: #fff;
+}
+.danger-title { color: #dc3545; margin-top: 0; font-size: 18px; }
+.danger-text { color: #666; font-size: 14px; margin-bottom: 15px; }
+.btn-danger {
+    background-color: #dc3545; color: white; padding: 10px 20px;
+    border: none; border-radius: 4px; font-weight: bold; cursor: pointer;
+}
+
+/* マイページ：注文履歴テーブル */
+.history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.table-header { background-color: #f8f9fa; border-bottom: 2px solid #ddd; }
+.table-row { border-bottom: 1px solid #eee; }
+.th-left { padding: 12px 10px; text-align: left; }
+.th-right { padding: 12px 10px; text-align: right; }
+.td-base { padding: 12px 10px; }
+.td-right { padding: 12px 10px; text-align: right; }
+.td-right-bold { padding: 12px 10px; text-align: right; font-weight: bold; color: #28a745; }
+
+/* その他調整 */
+.btn-auto { width: auto !important; padding: 10px 30px; }
+.mb-30 { margin-bottom: 30px; }
+
+/* マイページ：現在の会員ランク表示エリア */
+.current-rank-box {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+    display: flex;
+    align-items: center;
+}
+.current-rank-label {
+    font-weight: bold;
+    margin-right: 10px;
+}

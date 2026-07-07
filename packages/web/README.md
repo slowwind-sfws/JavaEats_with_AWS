@@ -21,30 +21,40 @@ JavaEats のフロントエンド SPA。React + TypeScript で実装し、`packa
 packages/web/
 ├── public/
 │   ├── index.html
-│   └── images/          # 商品画像（静的配信）
+│   └── images/                      # 商品画像（静的配信）
 ├── src/
-│   ├── index.tsx        # React エントリポイント
-│   ├── index.css        # グローバルスタイル
-│   ├── App.tsx          # Amplify.configure + <Authenticator> でラップ
-│   ├── route.tsx        # ルート定義
-│   ├── setupProxy.js    # CRA プロキシ設定（Cognito CORS 回避）
+│   ├── index.tsx                    # React エントリポイント
+│   ├── index.css                    # グローバルスタイル
+│   ├── App.tsx                      # Amplify.configure + <Authenticator> でラップ、初回ログイン後の自動ユーザー登録
+│   ├── route.tsx                    # ルート定義
+│   ├── setupProxy.js                # CRA プロキシ設定（Cognito CORS 回避）
 │   └── components/
-│       ├── DefaultPage.tsx      # 商品一覧ページ
-│       ├── ItemDetailPage.tsx   # 商品詳細・注文入力ページ
-│       ├── OrderConfirmPage.tsx # 注文確認ページ
-│       └── OrderCompletePage.tsx # 注文完了ページ
+│       ├── Header.tsx               # 共通ヘッダー（showMyPage props でマイページリンクを制御）
+│       ├── DefaultPage.tsx          # 商品一覧ページ
+│       ├── ItemDetailPage.tsx       # 商品詳細・注文入力ページ
+│       ├── OrderConfirmPage.tsx     # 注文確認ページ
+│       ├── OrderCompletePage.tsx    # 注文完了ページ
+│       └── UserProfilePage.tsx      # マイページ（プロフィール編集・注文履歴・退会）
 └── package.json
 ```
 
-## セットアップ
+## セットアップ（初回・DB リセット後）
 
-バックエンド API（`packages/api`）・MySQL・Floci（`localstack/docker-compose.yml`）が起動済みであることが前提です。
+> **重要:** `item-service` の `sql.init.mode` は `never` に設定されています。  
+> ローカル MySQL にテーブルとデータが存在しない状態では API が動作しません。  
+> 初回セットアップ時、または DB をリセットしたい場合は以下のコマンドを手動で実行してください。
 
 ```bash
 # ローカルインフラ（MySQL + Floci）起動
 cd localstack && docker compose up -d
 
-# バックエンド API 起動（別ターミナル）
+# スキーマと初期データを MySQL に流し込む（初回 or リセット時のみ）
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/schema.sql
+docker exec -i localstack-mysql-1 mysql -u user -ppassword db \
+  < packages/api/item-service/src/main/resources/data.sql
+
+# バックエンド API ビルド・起動（別ターミナル）
 cd packages/api
 ./mvnw package -DskipTests
 sam local start-api -t template.local.yaml -p 8080 --docker-network sam-network
@@ -58,17 +68,18 @@ npm start
 # → http://localhost:3000
 ```
 
+未認証時は Amplify UI の `<Authenticator>` により自動的にサインイン画面が表示されます。  
+サインイン成功後、`App.tsx` が `POST /user/register` を呼び出して DB にユーザーレコードを自動登録します（`INSERT IGNORE` により既存ユーザーは上書きされません）。
+
 ## 画面構成
 
 | パス | 内容 | 状態 |
 |---|---|---|
-| `/` | 商品一覧（検索・カテゴリフィルター・ログアウトボタン） | 実装済み |
-| `/item/:id` | 商品詳細・注文入力（数量・住所入力、金額計算、確認画面へ遷移） | 実装済み |
-| `/order/confirm` | 注文確認（注文内容表示、POST /order 呼び出し、修正へ戻る） | 実装済み |
+| `/` | 商品一覧（検索・カテゴリフィルター・マイページ・ログアウト） | 実装済み |
+| `/item/:id` | 商品詳細・注文入力（プロフィールから住所自動補完） | 実装済み |
+| `/order/confirm` | 注文確認（POST /order 呼び出し） | 実装済み |
 | `/order/complete` | 注文完了 | 実装済み |
-| `/user/...` | ユーザー登録・マイページ | 未実装 |
-
-※ 未認証時は、Amplify UI の `<Authenticator>` により自動的にサインイン画面が表示されます。
+| `/user/profile` | マイページ（プロフィール編集・注文履歴・退会） | 実装済み |
 
 ## ビルド
 

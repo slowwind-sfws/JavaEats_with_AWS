@@ -1,21 +1,15 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthenticator } from '@aws-amplify/ui-react';
+import Header from './Header';
 
 function OrderCompletePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuthenticator();
   const state = location.state as { itemName?: string } | null;
 
   return (
     <>
-      <header className="site-header">
-        <div className="header-container">
-          <h1 className="site-title"><a href="/">🍔 JavaEats</a></h1>
-          <button className="btn-logout" onClick={signOut}>ログアウト</button>
-        </div>
-      </header>
+      <Header showMyPage />
 
       <div className="container">
         <div className="form-card complete-card" style={{ textAlign: 'center' }}>
